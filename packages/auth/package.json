@@ -1,0 +1,24 @@
+{
+  "name": "@hl-aigc/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@hl-aigc/db": "workspace:*",
+    "@hl-aigc/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@hl-aigc/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
