@@ -1,0 +1,69 @@
+# 后端部署:push 到 main(或手动触发)时,构建 Lambda bundle 并 sam deploy 到 AWS。
+# 认证走 GitHub OIDC assume arn:aws:iam::218885889674:role/hl-aigc-gha-deploy,无长期密钥。
+# 数据库迁移不在 CI 中执行(需经跳板机隧道手动运行,见 README)。
+name: Deploy Backend (AWS SAM)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/server/**"
+      - "packages/**"
+      - "template.yaml"
+      - "samconfig.toml"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check (server and its deps)
+        run: pnpm exec turbo run check-types --filter=server
+
+      - name: Build Lambda bundle
+        run: pnpm --filter server build
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::218885889674:role/hl-aigc-gha-deploy
+          aws-region: us-east-2
+
+      - name: SAM deploy
+        run: |
+          sam deploy --no-progressbar --parameter-overrides \
+            DBMasterPassword="${{ secrets.DB_MASTER_PASSWORD }}" \
+            BetterAuthSecret="${{ secrets.BETTER_AUTH_SECRET }}" \
+            BetterAuthUrl="${{ vars.BETTER_AUTH_URL }}" \
+            CorsOrigin="${{ vars.CORS_ORIGIN }}" \
+            BastionKeyName="${{ vars.BASTION_KEY_NAME }}" \
+            AllowedSshCidr="${{ vars.ALLOWED_SSH_CIDR }}"
+
+      - name: Smoke check /healthz
+        run: |
+          curl -fsS "${{ vars.BETTER_AUTH_URL }}/healthz"

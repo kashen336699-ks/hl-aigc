@@ -1,0 +1,10 @@
+# SAM CLI 部署配置(不含密钥;密钥参数在部署命令行 / CI secrets 中传入)
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "hl-aigc"
+region = "us-east-2"
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+resolve_s3 = true
+confirm_changeset = false
+fail_on_empty_changeset = false

@@ -1,4 +1,63 @@
-# Ultracite Code Standards
+# hl-aigc
+
+基于 [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack) 的全栈 TypeScript monorepo。当前功能：GitHub Token 同步个人 GitHub 账户信息，持久化存储，并支持管理员增删自定义字段（详见 `docs/PRD.md`）。
+
+## 技术栈
+
+- **Monorepo**: pnpm@10 workspaces + Turborepo
+- **后端** (`apps/server`): Hono + tRPC + Drizzle ORM (PostgreSQL) + better-auth
+- **前端** (`apps/web`): Vite + React 19 + TanStack Router/Query + Tailwind v4 + shadcn/ui
+- **共享包** (`packages/*`): `api`（tRPC 路由/业务逻辑）、`auth`（better-auth 配置）、`config`（共享 tsconfig）、`db`（Drizzle schema）、`env`（环境变量校验/zod）、`ui`（shadcn/ui 组件）
+- **Lint/Format**: Biome，经由 Ultracite 零配置预设
+
+## 常用命令
+
+```bash
+pnpm install       # 安装依赖
+pnpm dev           # 启动所有应用 (turbo run dev)
+pnpm dev:web       # 仅启动前端 (apps/web)
+pnpm dev:server    # 仅启动后端 (apps/server)
+pnpm build         # 构建所有应用
+pnpm check-types   # 全仓库类型检查
+pnpm db:push       # 推送数据库 schema (@hl-aigc/db)
+pnpm db:generate   # 生成数据库 client/migration
+pnpm db:migrate    # 执行数据库迁移
+pnpm db:studio     # 打开数据库可视化工具
+pnpm check         # ultracite check（lint 检查）
+pnpm fix           # ultracite fix（自动修复格式/lint）
+```
+
+根目录与各 app 的 `package.json` 均未配置 `test` 脚本，新增测试前需先确认测试框架。
+
+## 目录结构
+
+```text
+hl-aigc/
+├── apps/
+│   ├── web/       # 前端 (Vite + React 19 + Tailwind v4)
+│   └── server/    # 后端 (Hono + tRPC)
+├── packages/
+│   ├── api/       # tRPC 路由 / 业务逻辑
+│   ├── auth/      # better-auth 配置
+│   ├── config/    # 共享 tsconfig
+│   ├── db/        # Drizzle schema / 数据库
+│   ├── env/       # 环境变量校验 (zod)
+│   └── ui/        # 共享 shadcn/ui 组件
+├── specs/         # 功能规格文档
+└── docs/PRD.md    # 产品需求文档
+```
+
+## 规则引入
+
+- @rules/coding-style.md — TypeScript / Biome (Ultracite) 编码风格细则
+- @rules/frontend.md — 前端开发规范 (apps/web)
+- @rules/git-workflow.md — Git 提交/分支/合并规范
+- @rules/security.md — 安全规范（认证、env/secrets、CORS、tRPC 鉴权、数据库访问）
+- @rules/testing.md — 测试相关规范与当前项目测试现状
+
+---
+
+## Ultracite Code Standards
 
 This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
 
@@ -124,3 +183,7 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 ---
 
 Most formatting and common issues are automatically fixed by Biome. Run `pnpm dlx ultracite fix` before committing to ensure compliance.
+
+---
+
+@AGENTS.md

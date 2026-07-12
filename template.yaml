@@ -1,0 +1,307 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  hl-aigc backend: Hono on Lambda + API Gateway (HTTP API),
+  Aurora PostgreSQL Serverless v2, all in one VPC.
+  1 public subnet (NAT Gateway + SSH bastion), 2 private subnets (Lambda + Aurora).
+
+Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        # 密钥走 NoEcho 参数(本地/CI secrets 注入)而非 Secrets Manager 动态引用:
+        # 规避 RDS 托管密码含 URL 特殊字符破坏 DATABASE_URL 的问题,作业场景足够
+        - W1011
+
+Parameters:
+  DBMasterUsername:
+    Type: String
+    Default: hlaigc
+    Description: Aurora master username
+  DBMasterPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    AllowedPattern: "[a-zA-Z0-9]+"
+    Description: Aurora master password (alphanumeric only, avoids URL-encoding issues in DATABASE_URL)
+  DBName:
+    Type: String
+    Default: hlaigc
+    Description: Initial database name
+  BetterAuthSecret:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: better-auth signing secret (>= 32 chars)
+  BetterAuthUrl:
+    Type: String
+    Default: https://placeholder.example.com
+    Description: Public URL of this API (API Gateway URL; fill in after first deploy)
+  CorsOrigin:
+    Type: String
+    Default: https://placeholder.pages.dev
+    Description: Frontend origin (Cloudflare Pages URL; fill in after frontend deploy)
+  BastionKeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: EC2 key pair name for SSH access to the bastion host
+  AllowedSshCidr:
+    Type: String
+    AllowedPattern: '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}'
+    Description: CIDR allowed to SSH into the bastion (your public IP, e.g. 1.2.3.4/32)
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+    MemorySize: 512
+    Timeout: 30
+
+Resources:
+  # ---------------------------------------------------------------------------
+  # 网络层: VPC + 1 公有子网(NAT/跳板机) + 2 私有子网(Lambda/Aurora, 跨 AZ)
+  # ---------------------------------------------------------------------------
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags: [{ Key: Name, Value: hl-aigc-vpc }]
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags: [{ Key: Name, Value: hl-aigc-igw }]
+
+  VpcGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      MapPublicIpOnLaunch: true
+      Tags: [{ Key: Name, Value: hl-aigc-public }]
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags: [{ Key: Name, Value: hl-aigc-private-a }]
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags: [{ Key: Name, Value: hl-aigc-private-b }]
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags: [{ Key: Name, Value: hl-aigc-public-rt }]
+
+  PublicDefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VpcGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  NatEip:
+    Type: AWS::EC2::EIP
+    DependsOn: VpcGatewayAttachment
+    Properties:
+      Domain: vpc
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEip.AllocationId
+      SubnetId: !Ref PublicSubnet
+      Tags: [{ Key: Name, Value: hl-aigc-nat }]
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags: [{ Key: Name, Value: hl-aigc-private-rt }]
+
+  PrivateDefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  PrivateSubnetARouteAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetBRouteAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+  # ---------------------------------------------------------------------------
+  # 安全组: Lambda(出站全放) / DB(仅收 Lambda+跳板机 5432) / 跳板机(仅收你的 IP 22)
+  # ---------------------------------------------------------------------------
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: hl-aigc Lambda functions
+      VpcId: !Ref Vpc
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+      Tags: [{ Key: Name, Value: hl-aigc-lambda-sg }]
+
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: hl-aigc SSH bastion
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowedSshCidr
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+      Tags: [{ Key: Name, Value: hl-aigc-bastion-sg }]
+
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: hl-aigc Aurora PostgreSQL
+      VpcId: !Ref Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref BastionSecurityGroup
+      Tags: [{ Key: Name, Value: hl-aigc-db-sg }]
+
+  # ---------------------------------------------------------------------------
+  # 数据库: Aurora PostgreSQL Serverless v2(私有子网, 不对公网开放)
+  # ---------------------------------------------------------------------------
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: hl-aigc private subnets
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+
+  DbCluster:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Engine: aurora-postgresql
+      EngineVersion: "16.6"
+      DatabaseName: !Ref DBName
+      MasterUsername: !Ref DBMasterUsername
+      MasterUserPassword: !Ref DBMasterPassword
+      DBSubnetGroupName: !Ref DbSubnetGroup
+      VpcSecurityGroupIds: [!Ref DbSecurityGroup]
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: 0.5
+        MaxCapacity: 2
+      BackupRetentionPeriod: 1
+      DeletionProtection: false
+
+  DbInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      DBClusterIdentifier: !Ref DbCluster
+      Engine: aurora-postgresql
+      DBInstanceClass: db.serverless
+      PubliclyAccessible: false
+
+  # ---------------------------------------------------------------------------
+  # 跳板机: 公有子网 t4g.nano, 仅允许你的 IP SSH; 用于本地开隧道跑 db migration
+  # ---------------------------------------------------------------------------
+  BastionHost:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t4g.nano
+      ImageId: "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64}}"
+      KeyName: !Ref BastionKeyName
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds: [!Ref BastionSecurityGroup]
+      Tags: [{ Key: Name, Value: hl-aigc-bastion }]
+
+  # ---------------------------------------------------------------------------
+  # 后端: Hono on Lambda + HTTP API(API Gateway v2)
+  # ---------------------------------------------------------------------------
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: hl-aigc-api
+      CodeUri: apps/server/dist
+      Handler: lambda.handler
+      Policies:
+        - AWSLambdaVPCAccessExecutionRole
+      VpcConfig:
+        SubnetIds:
+          - !Ref PrivateSubnetA
+          - !Ref PrivateSubnetB
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+      Environment:
+        Variables:
+          NODE_ENV: production
+          DATABASE_URL: !Sub "postgresql://${DBMasterUsername}:${DBMasterPassword}@${DbCluster.Endpoint.Address}:${DbCluster.Endpoint.Port}/${DBName}"
+          BETTER_AUTH_SECRET: !Ref BetterAuthSecret
+          BETTER_AUTH_URL: !Ref BetterAuthUrl
+          CORS_ORIGIN: !Ref CorsOrigin
+      Events:
+        RootPath:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: ANY
+        CatchAll:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint (use as BETTER_AUTH_URL / VITE_SERVER_URL)
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  DbEndpoint:
+    Description: Aurora cluster writer endpoint (private; reach via bastion tunnel)
+    Value: !GetAtt DbCluster.Endpoint.Address
+  BastionPublicIp:
+    Description: Bastion public IP for SSH tunnel
+    Value: !GetAtt BastionHost.PublicIp
+  VpcId:
+    Value: !Ref Vpc

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@hl-aigc/api": "workspace:*",
+    "@hl-aigc/auth": "workspace:*",
     "@hl-aigc/env": "workspace:*",
     "@hl-aigc/ui": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
