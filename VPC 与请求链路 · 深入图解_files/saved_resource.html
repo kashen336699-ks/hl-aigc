@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<!-- saved from url=(0253)https://b5062934-122a-4504-95df-7658f815f732.frame.claudeusercontent.com/_f/1783865812-5db7/?__frame_t=gesdgFXahktevph45XKTFFOJ.0f1f81b7-6b8d-435b-9eac-9d05b7823d67.bcd747be-7ffa-4f04-a47b-f4be6845fc8a.1783869415&__frame_v=manifest.21ba44c2bfde1499.json -->
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<!-- frame-runtime --><!--<base href="/_f/1783865812-5db7/">-->
+		<base href=".">
+		<script>
+		"use strict";
+		window.__FRAME_PREAMBLE = {
+			capabilities: {
+				downloads: "downloads.DUzXFHNF.js",
+				mcp: "mcp.Djj5DQjZ.js",
+				self: "self.DqF_PxOe.js",
+			},
+			transforms: "_transforms.DYk1Ltlh.js",
+		};
+		</script>
+		<script>
+		"use strict";
+		(() => {
+			const X = "modulepreload",
+				Y = (e) => "/" + e,
+				Z = {},
+				U = (t, n, u) => {
+					const o = Promise.resolve();
+					function i(f) {
+						const a = new Event("vite:preloadError", { cancelable: !0 });
+						if (
+							((a.payload = f), window.dispatchEvent(a), !a.defaultPrevented)
+						) {
+							throw f;
+						}
+					}
+					return o.then((f) => {
+						for (const a of f || []) {
+							a.status === "rejected" && i(a.reason);
+						}
+						return t().catch(i);
+					});
+				},
+				D = ["light", "dark", "system"];
+			function $(e) {
+				if (e == null || typeof e != "object") {
+					return !1;
+				}
+				const t = e.__frame_init;
+				return t != null && typeof t == "object";
+			}
+			function q(e) {
+				if (e == null || typeof e != "object") {
+					return !1;
+				}
+				const t = e.__frame_theme;
+				if (t == null || typeof t != "object") {
+					return !1;
+				}
+				const n = t.theme;
+				return typeof n == "string" && D.includes(n);
+			}
+			function M(e) {
+				if (window === top || (e.type === "auxclick" && e.button !== 1)) {
+					return;
+				}
+				const t = e.composedPath ? e.composedPath() : [e.target];
+				let n = null;
+				for (let f = 0; f < t.length; f++) {
+					const a = t[f];
+					if (a && a.matches && a.matches("a[href],area[href]")) {
+						n = a;
+						break;
+					}
+				}
+				if (
+					(!n &&
+						e.target &&
+						e.target.closest &&
+						(n = e.target.closest("a[href],area[href]")),
+					!n)
+				) {
+					return;
+				}
+				const u = n.getAttribute("href");
+				if (!u) {
+					return;
+				}
+				let o, i;
+				try {
+					(o = new URL(u, document.baseURI)),
+						(i = new URL(document.baseURI).origin);
+				} catch {
+					return;
+				}
+				(o.protocol === "http:" || o.protocol === "https:") &&
+					o.origin !== i &&
+					(e.preventDefault(),
+					parent.postMessage({ __frame_nav: !0, url: o.href }, "*"));
+			}
+			const L = {};
+			function y(e) {
+				if (window === top) {
+					return;
+				}
+				const t = Date.now();
+				t - (L[e] || 0) < 500 ||
+					((L[e] = t),
+					parent.postMessage({ __frame_engaged: !0, kind: e }, "*"));
+			}
+			const F = 2e3,
+				T = ["wheel", "touchstart", "touchmove", "keydown", "pointerdown"];
+			let k = 0;
+			function B(e) {
+				e.isTrusted && (k = Date.now());
+			}
+			function z() {
+				addEventListener("click", M, !0), addEventListener("auxclick", M, !0);
+			}
+			function W() {
+				for (let e = 0; e < T.length; e++) {
+					addEventListener(T[e], B, { capture: !0, passive: !0 });
+				}
+				addEventListener(
+					"scroll",
+					(e) => {
+						e.isTrusted && Date.now() - k < F && y("scroll");
+					},
+					{ capture: !0, passive: !0 }
+				),
+					addEventListener(
+						"pointermove",
+						(e) => {
+							e.isTrusted && y("pointer");
+						},
+						{ capture: !0, passive: !0 }
+					),
+					addEventListener(
+						"click",
+						(e) => {
+							e.isTrusted && y("click");
+						},
+						{ capture: !0, passive: !0 }
+					);
+			}
+			function x(e, t, n) {
+				const u = [...t.values()].filter((o) =>
+					o.targets.some((i) => i.startsWith(e + "."))
+				);
+				return {
+					wrap(o, i) {
+						const f = `${e}.${o}`,
+							a = u.filter((s) => s.targets.includes(f));
+						return a.length === 0
+							? (...s) => {
+									try {
+										return i(...s);
+									} catch (d) {
+										return Promise.reject(d);
+									}
+								}
+							: (...s) => {
+									let d = s;
+									for (const c of a) {
+										const l = c.module.parameters;
+										if (l) {
+											try {
+												d = l(d);
+											} catch {
+												return Promise.reject({
+													code: "transform_error",
+													id: c.id,
+													scope: e,
+													message: "parameters transform failed",
+												});
+											}
+										}
+									}
+									let m;
+									try {
+										m = i(...d);
+									} catch (c) {
+										m = Promise.reject(c);
+									}
+									return m.then(
+										(c) => {
+											for (let l = a.length - 1; l >= 0; l--) {
+												const h = a[l],
+													p = h.module.returns;
+												if (p) {
+													try {
+														c = p(c);
+													} catch {
+														return n({ id: h.id, scope: e, leg: "returns" }), c;
+													}
+												}
+											}
+											return c;
+										},
+										(c) => {
+											for (let l = a.length - 1; l >= 0; l--) {
+												const h = a[l],
+													p = h.module.throws;
+												if (p) {
+													try {
+														c = p(c);
+													} catch {
+														return (
+															n({ id: h.id, scope: e, leg: "throws" }),
+															Promise.reject(c)
+														);
+													}
+												}
+											}
+											return Promise.reject(c);
+										}
+									);
+								};
+					},
+				};
+			}
+			function H(e, t, n, u = () => {}) {
+				const o = new Set(e.changes ?? []),
+					i = new Map();
+				for (const f of o) {
+					const a = t[f];
+					a && i.set(f, a);
+				}
+				return {
+					contract: e.contract,
+					changes: o,
+					flags: new Set(e.flags ?? []),
+					capabilities: e.capabilities ?? {},
+					transforms: i,
+					shellOrigin: n.shellOrigin,
+					mount: n.mount,
+					pipe: (f) => x(f, i, u),
+				};
+			}
+			(() => {
+				const e = Object.defineProperty,
+					t = globalThis,
+					n = [
+						"RTCPeerConnection",
+						"webkitRTCPeerConnection",
+						"RTCDataChannel",
+						"RTCIceCandidate",
+						"RTCSessionDescription",
+						"RTCRtpSender",
+						"RTCRtpReceiver",
+					];
+				let u = 0;
+				for (let o = 0; o < n.length; o++) {
+					const i = n[o];
+					try {
+						e(t, i, { value: void 0, writable: !1, configurable: !1 });
+					} catch {
+						try {
+							delete t[i];
+						} catch {}
+						try {
+							e(t, i, { value: void 0, writable: !1, configurable: !0 });
+						} catch {}
+					}
+					typeof t[i] == "function" && u++;
+				}
+				if (u && window !== top) {
+					try {
+						parent.postMessage({ __frame_rtc_lockdown_failed: u }, "*");
+					} catch {}
+				}
+			})();
+			const K = 1e4,
+				G = Object.freeze([
+					...(window.__FRAME_PREAMBLE?.origins ?? [
+						"https://claude.ai",
+						"https://preview.claude.ai",
+					]),
+				]);
+			function J(e) {
+				for (const t of G) {
+					if (t.endsWith(":*")) {
+						try {
+							const n = new URL(e);
+							if (`${n.protocol}//${n.hostname}:*` === t) {
+								return !0;
+							}
+						} catch {}
+					} else if (e === t) {
+						return !0;
+					}
+				}
+				return !1;
+			}
+			const w = Object.freeze({
+					...(window.__FRAME_PREAMBLE?.capabilities ?? {}),
+				}),
+				E = window.__FRAME_PREAMBLE?.transforms,
+				C = /^[\w.-]+\.js$/,
+				V = /^[a-z][a-z0-9_-]{0,63}$/;
+			let A = null,
+				g = null;
+			function P(e, t, n) {
+				try {
+					Object.defineProperty(e, t, {
+						value: n,
+						writable: !1,
+						configurable: !1,
+						enumerable: !0,
+					});
+				} catch {
+					try {
+						Object.defineProperty(e, t, {
+							value: n,
+							writable: !1,
+							configurable: !0,
+							enumerable: !0,
+						});
+					} catch {}
+				}
+			}
+			let R = !1;
+			function N(e) {
+				const t = document.documentElement;
+				e === "light" || e === "dark"
+					? ((t.dataset.theme = e), (t.style.colorScheme = e), (R = !0))
+					: R && (delete t.dataset.theme, (t.style.colorScheme = ""), (R = !1));
+			}
+			const _ = new Map();
+			function Q(e, t) {
+				const n = _.get(e);
+				if (!n) {
+					return;
+				}
+				Object.assign(n.impl, t),
+					(n.impl.__settled = () =>
+						Promise.reject({
+							code: "capability_removed",
+							message: `${e}: method not in this runtime`,
+						}));
+				const u = n.queue;
+				n.queue = [];
+				for (const o of u) {
+					const i = t[o.method];
+					i
+						? i(...o.args).then(o.resolve, o.reject)
+						: o.reject({
+								code: "capability_removed",
+								message: `${e}.${o.method} is not in this runtime`,
+							});
+				}
+			}
+			function O(e, t) {
+				const n = _.get(e);
+				if (!n) {
+					return;
+				}
+				n.impl.__settled = () => Promise.reject(t);
+				const u = n.queue;
+				n.queue = [];
+				for (const o of u) {
+					o.reject(t);
+				}
+			}
+			const j = Object.getOwnPropertyDescriptor(window, "claude");
+			if (window !== top && !(j && j.writable === !1)) {
+				z(), W();
+				const e = j?.value ?? {};
+				P(window, "claude", e);
+				const t = (s) => {
+					const d = { impl: Object.create(null), queue: [] };
+					_.set(s, d);
+					const m = new Proxy(d.impl, {
+						get: (c, l) => {
+							if (
+								typeof l == "string" &&
+								!(l === "then" || l === "toJSON" || l === "valueOf")
+							) {
+								return l === "toString"
+									? Object.prototype.toString
+									: (...h) => {
+											const p = c[l] ?? c.__settled;
+											return p
+												? p(...h)
+												: new Promise((b, S) => {
+														d.queue.push({
+															method: l,
+															args: h,
+															resolve: b,
+															reject: S,
+														});
+													});
+										};
+							}
+						},
+						set: () => !1,
+					});
+					P(e, s, m);
+				};
+				for (const s of Object.keys(w)) {
+					if (e[s] !== void 0) {
+						P(e, s, e[s]);
+						continue;
+					}
+					t(s);
+				}
+				let n = null,
+					u = null,
+					o = 0;
+				const i = (s) => {
+					s.source !== parent ||
+						!J(s.origin) ||
+						($(s.data) &&
+							((n = s.data.__frame_init),
+							(g = s.origin),
+							removeEventListener("message", i),
+							clearTimeout(o),
+							u?.()));
+				};
+				addEventListener("message", i),
+					parent.postMessage({ __frame_connect: !0 }, "*");
+				const f = new Promise((s) => {
+						(u = s),
+							(o = setTimeout(() => {
+								removeEventListener("message", i), s();
+							}, K));
+					}),
+					a =
+						document.readyState === "loading"
+							? new Promise((s) =>
+									document.addEventListener("DOMContentLoaded", () => s(), {
+										once: !0,
+									})
+								)
+							: Promise.resolve();
+				f.then(async () => {
+					if (!(n && g)) {
+						for (const r of _.keys()) {
+							O(r, {
+								code: "not_granted",
+								message:
+									"frame initialization did not arrive - capability unavailable",
+							});
+						}
+						return;
+					}
+					N(n.theme);
+					const s = g;
+					addEventListener("message", (r) => {
+						r.source !== parent ||
+							r.origin !== s ||
+							(q(r.data) && N(r.data.__frame_theme.theme));
+					});
+					const d = (r) => U(() => import("/_runtime/" + r), void 0),
+						m = Object.keys(n.capabilities ?? {});
+					for (const r of m) {
+						Object.hasOwn(w, r) ||
+							(V.test(r) &&
+								e[r] === void 0 &&
+								(t(r),
+								O(r, {
+									code: "capability_disabled",
+									message: "capability not in this runtime generation",
+								})));
+					}
+					const c = m
+							.filter((r) => Object.hasOwn(w, r))
+							.map((r) => [r, w[r]])
+							.filter((r) => typeof r[1] == "string" && C.test(r[1])),
+						[l, ...h] = await Promise.allSettled([
+							E && C.test(E) ? d(E) : Promise.resolve({}),
+							...c.map(([, r]) => d(r)),
+						]),
+						p = g;
+					A = H(
+						n,
+						(l.status === "fulfilled" && l.value?.TRANSFORMS) || {},
+						{ shellOrigin: p, mount: Q },
+						(r) => parent.postMessage({ __frame_cap_telemetry: r }, p)
+					);
+					const b = (r) =>
+							parent.postMessage(
+								{ __frame_cap_telemetry: { kind: "cap-load-error", cap: r } },
+								p
+							),
+						S = A;
+					h.forEach((r, v) => {
+						const I = c[v][0];
+						if (r.status !== "fulfilled") {
+							b(I);
+							return;
+						}
+						try {
+							r.value?.install?.(S);
+						} catch {
+							b(I);
+						}
+					});
+					for (const [r, v] of _) {
+						(v.queue.length === 0 && Object.keys(v.impl).length > 0) ||
+							O(r, {
+								code: m.includes(r) ? "capability_disabled" : "not_granted",
+								message: "capability not available in this session",
+							});
+					}
+					await a, parent.postMessage({ __frame_ready: !0 }, g);
+				});
+			}
+		})();
+		</script>
+		<!-- /frame-runtime -->
+		<meta name="viewport" content="width=device-width,initial-scale=1">
+		<style>
+		:root {
+			color-scheme: light;
+		}
+		body {
+			padding: 0;
+			margin: 0;
+			font:
+				14px -apple-system,
+				BlinkMacSystemFont,
+				sans-serif;
+			color: #141413;
+			background: #faf9f5;
+		}
+		img {
+			max-width: 100%;
+		}
+		</style>
+	</head>
+	<body>
+		<title>VPC 与请求链路 · 深入图解</title>
+		<style>
+		:root {
+			--bg: #f6f7f9;
+			--card: #ffffff;
+			--ink: #1d2733;
+			--muted: #5c6b7c;
+			--line: #d9dee5;
+			--accent: #0d7263;
+			--accent-soft: #e3f0ed;
+			--pub: #b3540e;
+			--pub-soft: #f8ede2;
+			--priv: #3a5fcd;
+			--priv-soft: #e8ecfa;
+			--code-bg: #eef1f4;
+			--warn-bg: #fdf3e4;
+			--warn-line: #e0b26a;
+		}
+		@media (prefers-color-scheme: dark) {
+			:root {
+				--bg: #10151c;
+				--card: #171e27;
+				--ink: #e6ebf2;
+				--muted: #93a1b1;
+				--line: #2b3543;
+				--accent: #35bfab;
+				--accent-soft: #14312c;
+				--pub: #e0913d;
+				--pub-soft: #33261575;
+				--priv: #7d97ed;
+				--priv-soft: #1c243d;
+				--code-bg: #1f2833;
+				--warn-bg: #2b2416;
+				--warn-line: #8a6a2e;
+			}
+		}
+		:root[data-theme="dark"] {
+			--bg: #10151c;
+			--card: #171e27;
+			--ink: #e6ebf2;
+			--muted: #93a1b1;
+			--line: #2b3543;
+			--accent: #35bfab;
+			--accent-soft: #14312c;
+			--pub: #e0913d;
+			--pub-soft: #33261575;
+			--priv: #7d97ed;
+			--priv-soft: #1c243d;
+			--code-bg: #1f2833;
+			--warn-bg: #2b2416;
+			--warn-line: #8a6a2e;
+		}
+		:root[data-theme="light"] {
+			--bg: #f6f7f9;
+			--card: #ffffff;
+			--ink: #1d2733;
+			--muted: #5c6b7c;
+			--line: #d9dee5;
+			--accent: #0d7263;
+			--accent-soft: #e3f0ed;
+			--pub: #b3540e;
+			--pub-soft: #f8ede2;
+			--priv: #3a5fcd;
+			--priv-soft: #e8ecfa;
+			--code-bg: #eef1f4;
+			--warn-bg: #fdf3e4;
+			--warn-line: #e0b26a;
+		}
+		* {
+			box-sizing: border-box;
+		}
+		body {
+			margin: 0;
+			font-family:
+				-apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+				"Microsoft YaHei", "Segoe UI", sans-serif;
+			font-size: 16px;
+			line-height: 1.75;
+			color: var(--ink);
+			background: var(--bg);
+		}
+		.wrap {
+			max-width: 960px;
+			padding: 48px 24px 96px;
+			margin: 0 auto;
+		}
+		.mono,
+		code,
+		pre {
+			font-family:
+				ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+			font-variant-numeric: tabular-nums;
+		}
+		code {
+			padding: 1px 6px;
+			font-size: 0.86em;
+			background: var(--code-bg);
+			border-radius: 4px;
+		}
+		pre {
+			padding: 14px 18px;
+			overflow-x: auto;
+			font-size: 13px;
+			line-height: 1.7;
+			background: var(--code-bg);
+			border: 1px solid var(--line);
+			border-radius: 8px;
+		}
+		pre code {
+			padding: 0;
+			background: none;
+		}
+		h1 {
+			margin: 8px 0 10px;
+			font-size: clamp(26px, 5vw, 36px);
+			line-height: 1.3;
+			text-wrap: balance;
+		}
+		h2 {
+			margin: 6px 0 14px;
+			font-size: 23px;
+			text-wrap: balance;
+		}
+		h3 {
+			margin: 30px 0 8px;
+			font-size: 17px;
+		}
+		p {
+			max-width: 44em;
+			margin: 12px 0;
+		}
+		ul,
+		ol {
+			max-width: 44em;
+			padding-left: 1.4em;
+		}
+		li {
+			margin: 6px 0;
+		}
+		li::marker {
+			font-weight: 600;
+			color: var(--accent);
+		}
+		.eyebrow {
+			font-family: ui-monospace, Menlo, monospace;
+			font-size: 12px;
+			font-weight: 600;
+			color: var(--accent);
+			text-transform: uppercase;
+			letter-spacing: 0.14em;
+		}
+		.lede {
+			max-width: 42em;
+			font-size: 17px;
+			color: var(--muted);
+		}
+		section {
+			margin-top: 60px;
+		}
+		.why {
+			max-width: 44em;
+			padding: 12px 18px;
+			margin: 18px 0;
+			background: var(--accent-soft);
+			border-left: 3px solid var(--accent);
+			border-radius: 0 8px 8px 0;
+		}
+		.why b:first-child {
+			color: var(--accent);
+		}
+		.warn {
+			max-width: 44em;
+			padding: 12px 18px;
+			margin: 18px 0;
+			background: var(--warn-bg);
+			border: 1px solid var(--warn-line);
+			border-radius: 8px;
+		}
+		/* diagrams */
+		.diagram-scroll {
+			margin: 22px 0;
+			overflow-x: auto;
+		}
+		.diagram {
+			min-width: 720px;
+			padding: 20px;
+			background: var(--card);
+			border: 1px solid var(--line);
+			border-radius: 12px;
+		}
+		.dg-title {
+			margin-bottom: 14px;
+			font-family: ui-monospace, Menlo, monospace;
+			font-size: 11px;
+			color: var(--muted);
+			text-transform: uppercase;
+			letter-spacing: 0.12em;
+		}
+		.node {
+			min-width: 100px;
+			padding: 9px 12px;
+			text-align: center;
+			background: var(--card);
+			border: 1.5px solid var(--line);
+			border-radius: 8px;
+		}
+		.node .nm {
+			font-size: 13.5px;
+			font-weight: 650;
+			line-height: 1.35;
+		}
+		.node .dt {
+			margin-top: 3px;
+			font-family: ui-monospace, Menlo, monospace;
+			font-size: 10.5px;
+			line-height: 1.55;
+			color: var(--muted);
+			word-break: break-all;
+		}
+		.node.pub {
+			background: var(--pub-soft);
+			border-color: var(--pub);
+		}
+		.node.priv {
+			background: var(--priv-soft);
+			border-color: var(--priv);
+		}
+		.node.hero {
+			background: var(--accent-soft);
+			border-color: var(--accent);
+		}
+		.node.ghost {
+			border-style: dashed;
+		}
+		.flow {
+			display: flex;
+			align-items: stretch;
+		}
+		.flow .node {
+			display: flex;
+			flex: 1;
+			flex-direction: column;
+			justify-content: center;
+		}
+		.arrow {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			min-width: 60px;
+			padding: 0 4px;
+			font-family: ui-monospace, Menlo, monospace;
+			font-size: 10px;
+			line-height: 1.5;
+			color: var(--accent);
+			text-align: center;
+		}
+		.arrow .shaft {
+			font-size: 15px;
+			letter-spacing: -1px;
+			white-space: nowrap;
+		}
+		.arrow.blocked {
+			color: #c0392b;
+		}
+		.zone {
+			padding: 13px;
+			margin-top: 13px;
+			border: 1.5px dashed var(--line);
+			border-radius: 10px;
+		}
+		.zone > .zlabel {
+			display: flex;
+			gap: 7px;
+			align-items: center;
+			margin-bottom: 9px;
+			font-family: ui-monospace, Menlo, monospace;
+			font-size: 10.5px;
+			line-height: 1.5;
+			color: var(--muted);
+			letter-spacing: 0.08em;
+		}
+		.zone.z-pub {
+			border-color: var(--pub);
+		}
+		.zone.z-pub > .zlabel {
+			color: var(--pub);
+		}
+		.zone.z-priv {
+			border-color: var(--priv);
+		}
+		.zone.z-priv > .zlabel {
+			color: var(--priv);
+		}
+		.zone.z-vpc {
+			border-color: var(--accent);
+			border-style: solid;
+		}
+		.zone.z-vpc > .zlabel {
+			font-weight: 600;
+			color: var(--accent);
+		}
+		.zgrid {
+			display: grid;
+			gap: 11px;
+		}
+		.zgrid.cols2 {
+			grid-template-columns: 1fr 1fr;
+		}
+		.dot {
+			display: inline-block;
+			flex: none;
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+		}
+		.dot.d-pub {
+			background: var(--pub);
+		}
+		.dot.d-priv {
+			background: var(--priv);
+		}
+		.rt {
+			padding: 6px 10px;
+			margin-top: 9px;
+			font-family: ui-monospace, Menlo, monospace;
+			font-size: 10.5px;
+			line-height: 1.7;
+			color: var(--muted);
+			background: var(--code-bg);
+			border: 1px solid var(--line);
+			border-radius: 6px;
+		}
+		.rt b {
+			font-weight: 600;
+			color: var(--ink);
+		}
+		.chk {
+			display: inline-block;
+			padding: 0 8px;
+			margin-top: 4px;
+			font-family: ui-monospace, Menlo, monospace;
+			font-size: 10px;
+			color: var(--accent);
+			white-space: nowrap;
+			border: 1px solid var(--accent);
+			border-radius: 99px;
+		}
+		.chk.deny {
+			color: #c0392b;
+			border-color: #c0392b;
+		}
+		/* tables */
+		.tbl-scroll {
+			margin: 18px 0;
+			overflow-x: auto;
+		}
+		table {
+			width: 100%;
+			min-width: 560px;
+			font-size: 14px;
+			border-collapse: collapse;
+		}
+		th,
+		td {
+			padding: 9px 14px;
+			vertical-align: top;
+			text-align: left;
+			border-bottom: 1px solid var(--line);
+		}
+		th {
+			font-family: ui-monospace, Menlo, monospace;
+			font-size: 11px;
+			font-weight: 600;
+			color: var(--muted);
+			text-transform: uppercase;
+			letter-spacing: 0.1em;
+		}
+		tr:hover td {
+			background: color-mix(in srgb, var(--accent) 4%, transparent);
+		}
+		/* sequence diagram */
+		.seq-scroll {
+			margin: 22px 0;
+			overflow-x: auto;
+		}
+		.seq {
+			min-width: 880px;
+			padding: 18px 14px 22px;
+			background: var(--card);
+			border: 1px solid var(--line);
+			border-radius: 12px;
+		}
+		.seq-row {
+			display: grid;
+			grid-template-columns: repeat(6, 1fr);
+		}
+		.seq-head {
+			margin-bottom: 6px;
+		}
+		.lane {
+			padding: 0 4px;
+			text-align: center;
+		}
+		.lane span {
+			display: inline-block;
+			max-width: 100%;
+			padding: 3px 10px;
+			font-family: ui-monospace, Menlo, monospace;
+			font-size: 11px;
+			font-weight: 600;
+			background: var(--card);
+			border: 1.5px solid var(--line);
+			border-radius: 99px;
+		}
+		.lane.l-hero span {
+			color: var(--accent);
+			background: var(--accent-soft);
+			border-color: var(--accent);
+		}
+		.lane.l-priv span {
+			color: var(--priv);
+			background: var(--priv-soft);
+			border-color: var(--priv);
+		}
+		.lane.l-pub span {
+			color: var(--pub);
+			background: var(--pub-soft);
+			border-color: var(--pub);
+		}
+		.lane .sub {
+			display: block;
+			padding: 1px 0 0;
+			font-size: 9.5px;
+			font-weight: 400;
+			color: var(--muted);
+			background: none;
+			border: none;
+		}
+		.seq-body {
+			display: flex;
+			flex-direction: column;
+			background-image:
+				linear-gradient(var(--line), var(--line)),
+				linear-gradient(var(--line), var(--line)),
+				linear-gradient(var(--line), var(--line)),
+				linear-gradient(var(--line), var(--line)),
+				linear-gradient(var(--line), var(--line)),
+				linear-gradient(var(--line), var(--line));
+			background-repeat: no-repeat;
+			background-position:
+				8.3333% 0,
+				25% 0,
+				41.6667% 0,
+				58.3333% 0,
+				75% 0,
+				91.6667% 0;
+			background-size: 1px 100%;
+		}
+		.msg {
+			padding: 2px 0 8px;
+		}
+		.minner {
+			margin: 0 calc(50% / var(--span));
+		}
+		.mlabel {
+			padding: 0 6px 3px;
+			font-size: 11.5px;
+			line-height: 1.45;
+			color: var(--ink);
+			text-align: center;
+		}
+		.mlabel .n {
+			margin-right: 5px;
+			font-family: ui-monospace, Menlo, monospace;
+			font-size: 10.5px;
+			font-weight: 700;
+			color: var(--accent);
+		}
+		.mline {
+			position: relative;
+			height: 0;
+			border-top: 2px solid var(--accent);
+		}
+		.mline::after {
+			position: absolute;
+			top: -6px;
+			right: -1px;
+			content: "";
+			border: 5px solid transparent;
+			border-right: none;
+			border-left: 8px solid var(--accent);
+		}
+		.msg.left .mline::after {
+			right: auto;
+			left: -1px;
+			border: 5px solid transparent;
+			border-right: 8px solid var(--accent);
+			border-left: none;
+		}
+		.msg.res .mline {
+			border-top-color: var(--muted);
+			border-top-style: dashed;
+		}
+		.msg.res .mline::after {
+			border-left-color: var(--muted);
+		}
+		.msg.res.left .mline::after {
+			border-right-color: var(--muted);
+			border-left-color: transparent;
+		}
+		.msg.res .mlabel {
+			color: var(--muted);
+		}
+		.msg.res .mlabel .n {
+			color: var(--muted);
+		}
+		.snote {
+			padding: 8px 12px;
+			margin: 4px 10px 10px;
+			font-size: 11.5px;
+			line-height: 1.55;
+			color: var(--ink);
+			background: var(--priv-soft);
+			border: 1.5px dashed var(--priv);
+			border-radius: 8px;
+		}
+		.snote .n {
+			margin-right: 5px;
+			font-family: ui-monospace, Menlo, monospace;
+			font-size: 10.5px;
+			font-weight: 700;
+			color: var(--priv);
+		}
+		.phase {
+			position: relative;
+			z-index: 1;
+			width: fit-content;
+			padding: 2px 14px;
+			margin: 14px auto 10px;
+			font-family: ui-monospace, Menlo, monospace;
+			font-size: 10.5px;
+			color: var(--muted);
+			text-transform: uppercase;
+			letter-spacing: 0.13em;
+			background: var(--bg);
+			border: 1px solid var(--line);
+			border-radius: 99px;
+		}
+		/* steps narration */
+		.steps {
+			max-width: none;
+			padding: 0;
+			list-style: none;
+			counter-reset: step;
+		}
+		.steps li {
+			display: grid;
+			grid-template-columns: 40px 1fr;
+			gap: 14px;
+			padding: 13px 0;
+			margin: 0;
+			counter-increment: step;
+			border-bottom: 1px solid var(--line);
+		}
+		.steps li:last-child {
+			border-bottom: none;
+		}
+		.steps li::before {
+			padding-top: 3px;
+			font-family: ui-monospace, Menlo, monospace;
+			font-size: 13px;
+			font-weight: 700;
+			color: var(--accent);
+			content: counter(step, decimal-leading-zero);
+		}
+		.steps .st {
+			font-weight: 650;
+		}
+		.steps .sd {
+			max-width: 46em;
+			margin-top: 2px;
+			font-size: 14.5px;
+			color: var(--muted);
+		}
+		/* quiz */
+		details {
+			max-width: 44em;
+			padding: 10px 16px;
+			margin: 10px 0;
+			background: var(--card);
+			border: 1px solid var(--line);
+			border-radius: 8px;
+		}
+		details summary {
+			font-weight: 600;
+			cursor: pointer;
+		}
+		details summary::marker {
+			color: var(--accent);
+		}
+		details p {
+			margin: 10px 0 4px;
+			font-size: 14.5px;
+			color: var(--muted);
+		}
+		a {
+			color: var(--accent);
+		}
+		@media (max-width: 640px) {
+			.zgrid.cols2 {
+				grid-template-columns: 1fr;
+			}
+		}
+		</style>
+
+		<div class="wrap">
+			<header>
+				<div class="eyebrow">hl-aigc · Deep Dive</div>
+				<h1>两个没整明白的点,这次彻底整明白:<br>VPC 网络 与 一次完整请求</h1>
+				<p class="lede">
+					这一篇只讲两件事,但讲透。先纠正两个几乎所有人都会踩的认知误区,再把每一条流量路径、每一次检查、每一跳翻译,逐一摆在图上。
+				</p>
+			</header>
+
+			<!-- ================================================================ -->
+			<section id="vpc">
+				<div class="eyebrow">Part 1 · VPC Network</div>
+				<h2>VPC:把它想成一个封闭园区</h2>
+				<p>
+					先建立心智模型,再看图。AWS
+					网络的每个概念都能在「封闭园区」里找到对应物,而且这个类比在细节上惊人地准确:
+				</p>
+
+				<div class="tbl-scroll">
+					<table>
+						<thead>
+							<tr>
+								<th>AWS 概念</th>
+								<th>园区类比</th>
+								<th>在本项目中</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><b>VPC</b></td>
+								<td>有围墙的园区,内部有自己的门牌号系统</td>
+								<td class="mono">10.0.0.0/16(6.5 万个内部门牌)</td>
+							</tr>
+							<tr>
+								<td><b>子网 Subnet</b></td>
+								<td>园区里的一栋栋楼</td>
+								<td>1 栋临街楼(公有)+ 2 栋内部楼(私有)</td>
+							</tr>
+							<tr>
+								<td><b>Internet Gateway</b></td>
+								<td>园区<b>唯一</b>的正门</td>
+								<td class="mono">hl-aigc-igw</td>
+							</tr>
+							<tr>
+								<td><b>路由表 Route Table</b></td>
+								<td>每栋楼门口的指路牌:「去园区外 → 走哪条路」</td>
+								<td>公有楼指向正门;私有楼指向收发室</td>
+							</tr>
+							<tr>
+								<td><b>NAT Gateway</b></td>
+								<td>收发室:替内部楼<b>寄</b>快递,但不代收陌生来件</td>
+								<td class="mono">hl-aigc-nat + 固定公网 IP</td>
+							</tr>
+							<tr>
+								<td><b>安全组 Security Group</b></td>
+								<td>每个<b>房间</b>自己的门禁白名单(楼能进 ≠ 房间能进)</td>
+								<td>lambda-sg / db-sg / bastion-sg</td>
+							</tr>
+							<tr>
+								<td><b>跳板机 Bastion</b></td>
+								<td>临街楼里的接待室:访客唯一的登记入口</td>
+								<td class="mono">t4g.nano · 3.12.108.217</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+
+				<p>两条铁律,后面所有内容都建立在这上面:</p>
+				<ul>
+					<li>
+						<b>私有子网里的机器没有公网地址</b>——互联网上根本不存在能寻址到
+						<code>10.0.1.x</code>
+						的路,这不是「防火墙拦了你」,是「地址本身在公网无意义」;
+					</li>
+					<li>
+						<b
+							>路由表管「能不能到达」,安全组管「到达后放不放行」</b
+						>——两道独立的关卡,必须都过。
+					</li>
+				</ul>
+
+				<h3>结构图:谁住哪栋楼,门口指路牌写着什么</h3>
+				<div class="diagram-scroll">
+					<div class="diagram">
+						<div class="dg-title">
+							VPC Structure — 注意 API Gateway 画在围墙外面(这是重点)
+						</div>
+						<div class="flow" style="margin-bottom:13px">
+							<div class="node hero" style="max-width:180px">
+								<div class="nm">Internet</div>
+								<div class="dt">用户浏览器 / GitHub / 你的 Mac</div>
+							</div>
+							<div class="arrow"><span class="shaft">◀────▶</span></div>
+							<div class="node" style="max-width:200px">
+								<div class="nm">API Gateway</div>
+								<div class="dt">AWS 托管服务<br><b>不在你的 VPC 里!</b></div>
+							</div>
+							<div class="arrow">
+								<span>AWS 内部调用<br>(不走你的网络)</span
+								><span class="shaft">────▶</span>
+							</div>
+							<div class="node priv ghost" style="max-width:160px">
+								<div class="nm">Lambda</div>
+								<div class="dt">(住在下面的私有楼里)</div>
+							</div>
+						</div>
+						<div class="flow" style="margin-bottom:13px">
+							<div class="node hero" style="max-width:180px">
+								<div class="nm">Internet</div>
+								<div class="dt"></div>
+							</div>
+							<div class="arrow">
+								<span>唯一正门</span><span class="shaft">◀────▶</span>
+							</div>
+							<div class="node" style="max-width:200px">
+								<div class="nm">Internet Gateway</div>
+								<div class="dt">只服务下面这个园区</div>
+							</div>
+							<div class="arrow"><span class="shaft">◀────▶</span></div>
+							<div class="node ghost" style="max-width:160px">
+								<div class="nm">VPC(下图)</div>
+								<div class="dt"></div>
+							</div>
+						</div>
+						<div class="zone z-vpc">
+							<div class="zlabel">
+								VPC · 10.0.0.0/16 · 围墙之内,全部是内网门牌
+							</div>
+							<div class="zone z-pub">
+								<div class="zlabel">
+									<span class="dot d-pub"></span>公有子网(临街楼)· 10.0.0.0/24 ·
+									楼里的机器可以有公网 IP
+								</div>
+								<div class="zgrid cols2">
+									<div class="node pub">
+										<div class="nm">NAT Gateway(收发室)</div>
+										<div class="dt">
+											持有固定公网 IP<br>替私有楼「代寄」出网流量
+										</div>
+									</div>
+									<div class="node pub">
+										<div class="nm">跳板机(接待室)</div>
+										<div class="dt">
+											公网 IP 3.12.108.217<br>门禁:只放 22 端口 × 你家 IP
+										</div>
+									</div>
+								</div>
+								<div class="rt">
+									这栋楼的指路牌(公有路由表):<br>
+									<b>10.0.0.0/16 → local</b>(园区内互访,直接走)<br>
+									<b>0.0.0.0/0 → IGW</b>(其他一切,走正门 = 可直连公网)
+								</div>
+							</div>
+							<div class="zgrid cols2" style="margin-top:11px">
+								<div class="zone z-priv" style="margin-top:0">
+									<div class="zlabel">
+										<span class="dot d-priv"></span>私有子网 A(内部楼)·
+										10.0.1.0/24 · 可用区 a
+									</div>
+									<div class="zgrid">
+										<div class="node priv">
+											<div class="nm">Lambda · hl-aigc-api</div>
+											<div class="dt">
+												全部业务代码<br>门禁 lambda-sg:出站全放,入站没有
+											</div>
+										</div>
+										<div class="node priv">
+											<div class="nm">Aurora PostgreSQL</div>
+											<div class="dt">
+												无公网 IP · 门禁 db-sg:<br>5432 仅收 lambda-sg /
+												bastion-sg
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="zone z-priv" style="margin-top:0">
+									<div class="zlabel">
+										<span class="dot d-priv"></span>私有子网 B(内部楼)·
+										10.0.2.0/24 · 可用区 b
+									</div>
+									<div class="zgrid">
+										<div class="node priv ghost">
+											<div class="nm">Lambda 备用网卡</div>
+											<div class="dt">跨可用区容灾</div>
+										</div>
+										<div class="node priv ghost">
+											<div class="nm">Aurora 子网组占位</div>
+											<div class="dt">
+												RDS 硬性规定:子网组必须横跨 ≥2 个可用区
+											</div>
+										</div>
+									</div>
+									<div class="rt" style="margin-top:11px">
+										两栋内部楼共用的指路牌(私有路由表):<br>
+										<b>10.0.0.0/16 → local</b>(园区内互访)<br>
+										<b>0.0.0.0/0 → NAT</b>(出园区?先送收发室代寄)<br>注意:<b
+											>没有任何一条指向正门 IGW</b
+										>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="warn">
+					<b
+						>误区一(最重要):用户的 API 请求根本不进 VPC。</b
+					>很多人以为请求路线是「用户 → IGW → 进 VPC → Lambda」——错。API Gateway
+					是 AWS 的托管服务,活在你的围墙<b>外面</b>;它收到请求后,通过 AWS
+					自己的内部机制「唤醒」Lambda 并把事件塞给它,这个调用<b>不经过</b>你的
+					IGW、路由表和安全组。你的 VPC 正门(IGW)实际上只服务两件事:NAT
+					的出网流量、你 SSH 跳板机的流量。所以就算把 IGW 的进方向堵死,API
+					照样能用。
+				</div>
+
+				<h3>四条真实流量路径:逐条追踪 + 标出每一道检查</h3>
+				<p>整个系统里只存在四种流量。把这四条走通,VPC 就没有秘密了。</p>
+
+				<div class="diagram-scroll">
+					<div class="diagram">
+						<div class="dg-title">Path ① 用户调 API —「前门路线」,不进 VPC</div>
+						<div class="flow">
+							<div class="node hero">
+								<div class="nm">浏览器</div>
+								<div class="dt">hl-aigc.pages.dev 页面里的 fetch</div>
+							</div>
+							<div class="arrow">
+								<span>公网 HTTPS</span><span class="shaft">────▶</span>
+							</div>
+							<div class="node">
+								<div class="nm">API Gateway</div>
+								<div class="dt">
+									VPC 外 · AWS 托管<br>
+									<span class="chk">检查: 无(公开端点)</span>
+								</div>
+							</div>
+							<div class="arrow">
+								<span>AWS 内部事件投递<br>不走你的网络</span
+								><span class="shaft">────▶</span>
+							</div>
+							<div class="node priv">
+								<div class="nm">Lambda</div>
+								<div class="dt">
+									私有子网<br>
+									<span class="chk">检查: 不适用(事件触发,非网络连接)</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="diagram-scroll">
+					<div class="diagram">
+						<div class="dg-title">
+							Path ② Lambda 读写数据库 —「园区内网」,全程不出围墙
+						</div>
+						<div class="flow">
+							<div class="node priv">
+								<div class="nm">Lambda</div>
+								<div class="dt">10.0.1.x / 10.0.2.x</div>
+							</div>
+							<div class="arrow">
+								<span>路由: 10.0.0.0/16 → local<br>直达,不经 NAT/IGW</span
+								><span class="shaft">────▶</span>
+							</div>
+							<div class="node priv">
+								<div class="nm">Aurora :5432</div>
+								<div class="dt">
+									内网地址<br>
+									<span class="chk">db-sg: 来源是 lambda-sg? ✓ 放行</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="diagram-scroll">
+					<div class="diagram">
+						<div class="dg-title">
+							Path ③ Lambda 调 GitHub API —「收发室代寄」,出网但换了身份
+						</div>
+						<div class="flow">
+							<div class="node priv">
+								<div class="nm">Lambda</div>
+								<div class="dt">发起方 10.0.1.x<br>(私有地址,公网不认)</div>
+							</div>
+							<div class="arrow">
+								<span>路由: 0.0.0.0/0 → NAT</span
+								><span class="shaft">────▶</span>
+							</div>
+							<div class="node pub">
+								<div class="nm">NAT Gateway</div>
+								<div class="dt">
+									把源地址替换成自己的公网 EIP<br>并记住这笔「代寄」
+								</div>
+							</div>
+							<div class="arrow">
+								<span>路由: 0.0.0.0/0 → IGW</span
+								><span class="shaft">────▶</span>
+							</div>
+							<div class="node">
+								<div class="nm">api.github.com</div>
+								<div class="dt">
+									看到的来源是 NAT 的公网 IP<br>回包沿原连接返还,NAT 查账后转交
+									Lambda
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="diagram-scroll">
+					<div class="diagram">
+						<div class="dg-title">
+							Path ④ 你连数据库(迁移/改数据)—「接待室登记」,唯一的人工通道
+						</div>
+						<div class="flow">
+							<div class="node hero">
+								<div class="nm">你的 Mac</div>
+								<div class="dt">61.228.90.253</div>
+							</div>
+							<div class="arrow">
+								<span>SSH :22 经 IGW</span><span class="shaft">────▶</span>
+							</div>
+							<div class="node pub">
+								<div class="nm">跳板机</div>
+								<div class="dt">
+									<span class="chk">bastion-sg: 来源 IP 是你家? ✓</span><br>
+									<span class="chk">SSH: 私钥 .pem 验签 ✓</span>
+								</div>
+							</div>
+							<div class="arrow">
+								<span>内网转发 :5432</span><span class="shaft">────▶</span>
+							</div>
+							<div class="node priv">
+								<div class="nm">Aurora</div>
+								<div class="dt">
+									<span class="chk">db-sg: 来源是 bastion-sg? ✓</span><br>
+									<span class="chk">PostgreSQL: 用户名密码 ✓</span>
+								</div>
+							</div>
+						</div>
+						<div class="flow" style="margin-top:12px">
+							<div class="node hero">
+								<div class="nm">你的 Mac(直连尝试)</div>
+								<div class="dt">psql 直接连 Aurora?</div>
+							</div>
+							<div class="arrow blocked">
+								<span
+									>✗ 无公网 IP 可寻址<br>✗ 公网没有到 10.0.1.x 的路由<br>✗ db-sg
+									也没放行你</span
+								><span class="shaft">──✕──</span>
+							</div>
+							<div class="node priv ghost">
+								<div class="nm">Aurora</div>
+								<div class="dt">三道关,一道都过不去</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<h3>SSH 隧道到底干了什么:三个视角</h3>
+				<p>
+					那条迁移命令值得拆开看懂,因为「本地端口转发」是你以后一定会反复用到的技能:
+				</p>
+				<pre
+				><code>ssh -f -N -L <b>15432</b>:&lt;Aurora内网地址&gt;:<b>5432</b> -i ~/.ssh/hl-aigc-bastion.pem ec2-user@3.12.108.217
+#        └── 含义:在我本机开一个 15432 端口;凡是发给它的字节,
+#            都通过这条 SSH 加密连接搬到跳板机,由跳板机代我连 Aurora 的 5432</code></pre>
+				<p>同一时刻,三方看到的世界完全不同——这就是隧道的精妙之处:</p>
+				<div class="tbl-scroll">
+					<table>
+						<thead>
+							<tr>
+								<th>视角</th>
+								<th>它以为发生了什么</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><b>psql / drizzle</b>(你本机的工具)</td>
+								<td>
+									「我在连一个<b>本地</b>数据库
+									<span class="mono">127.0.0.1:15432</span>」——它完全不知道 AWS
+									的存在
+								</td>
+							</tr>
+							<tr>
+								<td><b>公网上的观察者</b></td>
+								<td>
+									只能看到你和
+									<span class="mono">3.12.108.217:22</span>
+									之间一条<b>加密的 SSH 流</b>,看不出里面装的是数据库流量
+								</td>
+							</tr>
+							<tr>
+								<td><b>Aurora</b></td>
+								<td>
+									「有个来自<b>跳板机内网 IP</b>
+									的客户端在连我」——它甚至不知道你的 Mac 存在
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="why">
+					<b>为什么 CI 不跑迁移、非要人肉走隧道?</b>①网络上 GitHub 的 runner
+					不在白名单里,进不来;②更重要的是设计取舍:schema
+					变更是高风险操作(删列、锁表),刻意保留「人工执行、人眼确认」这道闸门。这不是偷懒,是常见的工程决策。
+				</div>
+			</section>
+
+			<!-- ================================================================ -->
+			<section id="request">
+				<div class="eyebrow">Part 2 · Request Journey</div>
+				<h2>一次完整请求:14 步时序图</h2>
+				<p>
+					以你实际做过的操作为例:<b
+						>已登录状态下,在同步页粘贴 token、点击「获取账户信息」</b
+					>。下图是泳道时序图——六个参与者各占一列,时间从上往下流,实线是「去」,虚线是「回」:
+				</p>
+
+				<div class="seq-scroll">
+					<div class="seq">
+						<div class="seq-row seq-head">
+							<div class="lane l-hero">
+								<span>浏览器</span><span class="sub">Chrome @ 你家</span>
+							</div>
+							<div class="lane">
+								<span>CF Pages</span><span class="sub">全球 CDN 边缘</span>
+							</div>
+							<div class="lane">
+								<span>API Gateway</span><span class="sub">AWS · VPC 外</span>
+							</div>
+							<div class="lane l-priv">
+								<span>Lambda·Hono</span><span class="sub">私有子网</span>
+							</div>
+							<div class="lane l-priv">
+								<span>Aurora</span><span class="sub">私有子网</span>
+							</div>
+							<div class="lane l-pub">
+								<span>GitHub API</span><span class="sub">公网 · 经 NAT</span>
+							</div>
+						</div>
+						<div class="seq-body">
+							<div class="phase">阶段 A · 页面加载(只发生在打开/刷新时)</div>
+							<div class="seq-row">
+								<div class="msg" style="grid-column:1/3;--span:2">
+									<div class="minner">
+										<div class="mlabel">
+											<span class="n">01</span>GET hl-aigc.pages.dev
+										</div>
+										<div class="mline"></div>
+									</div>
+								</div>
+							</div>
+							<div class="seq-row">
+								<div class="msg res left" style="grid-column:1/3;--span:2">
+									<div class="minner">
+										<div class="mlabel">
+											<span class="n">02</span>HTML +
+											JS(后端地址已在构建时写死在 JS 里)
+										</div>
+										<div class="mline"></div>
+									</div>
+								</div>
+							</div>
+							<div class="phase">
+								阶段 B · CORS 预检(浏览器自动完成,你看不见)
+							</div>
+							<div class="seq-row">
+								<div class="msg" style="grid-column:1/4;--span:3">
+									<div class="minner">
+										<div class="mlabel">
+											<span class="n">03</span>OPTIONS /trpc/github.syncProfile
+											· 头部带 Origin: hl-aigc.pages.dev「我想跨域 POST,行吗?」
+										</div>
+										<div class="mline"></div>
+									</div>
+								</div>
+							</div>
+							<div class="seq-row">
+								<div class="msg" style="grid-column:3/5;--span:2">
+									<div class="minner">
+										<div class="mlabel">
+											<span class="n">04</span>打包成事件,转给 Lambda(cors
+											中间件应答)
+										</div>
+										<div class="mline"></div>
+									</div>
+								</div>
+							</div>
+							<div class="seq-row">
+								<div class="msg res left" style="grid-column:1/5;--span:4">
+									<div class="minner">
+										<div class="mlabel">
+											<span class="n">05</span>204 · Allow-Origin:
+											hl-aigc.pages.dev + Allow-Credentials: true「可以,cookie
+											也准带」
+										</div>
+										<div class="mline"></div>
+									</div>
+								</div>
+							</div>
+							<div class="phase">阶段 C · 真正的业务请求</div>
+							<div class="seq-row">
+								<div class="msg" style="grid-column:1/4;--span:3">
+									<div class="minner">
+										<div class="mlabel">
+											<span class="n">06</span>POST /trpc/github.syncProfile ·
+											体内有 token · 自动附上会话 cookie
+										</div>
+										<div class="mline"></div>
+									</div>
+								</div>
+							</div>
+							<div class="seq-row">
+								<div class="msg" style="grid-column:3/5;--span:2">
+									<div class="minner">
+										<div class="mlabel">
+											<span class="n">07</span>HTTP → JSON 事件 ·
+											无热实例则冷启动(1–3s)
+										</div>
+										<div class="mline"></div>
+									</div>
+								</div>
+							</div>
+							<div class="seq-row">
+								<div class="snote" style="grid-column:4/5">
+									<span class="n">08</span>lambda.ts 的 handle()
+									把事件还原成标准 Request → Hono 中间件链:cors ✓ → 从 cookie 取
+									session token
+								</div>
+							</div>
+							<div class="seq-row">
+								<div class="msg" style="grid-column:4/6;--span:2">
+									<div class="minner">
+										<div class="mlabel">
+											<span class="n">09</span>SELECT session JOIN user(内网
+											:5432,走 Path ②)
+										</div>
+										<div class="mline"></div>
+									</div>
+								</div>
+							</div>
+							<div class="seq-row">
+								<div class="msg res left" style="grid-column:4/6;--span:2">
+									<div class="minner">
+										<div class="mlabel">
+											<span class="n">10</span>会话有效 → ctx.session 就位,tRPC
+											校验入参(zod)
+										</div>
+										<div class="mline"></div>
+									</div>
+								</div>
+							</div>
+							<div class="seq-row">
+								<div class="msg" style="grid-column:4/7;--span:3">
+									<div class="minner">
+										<div class="mlabel">
+											<span class="n">11</span>GET api.github.com/user ·
+											Authorization: 你的 token(出网走 Path ③:NAT → IGW)
+										</div>
+										<div class="mline"></div>
+									</div>
+								</div>
+							</div>
+							<div class="seq-row">
+								<div class="msg res left" style="grid-column:4/7;--span:3">
+									<div class="minner">
+										<div class="mlabel">
+											<span class="n">12</span>你的 GitHub 公开资料 JSON
+										</div>
+										<div class="mline"></div>
+									</div>
+								</div>
+							</div>
+							<div class="seq-row">
+								<div class="msg" style="grid-column:4/6;--span:2">
+									<div class="minner">
+										<div class="mlabel">
+											<span class="n">13</span>UPSERT github_users(有则更新+刷新
+											syncedAt,无则插入 → 不产生重复记录)
+										</div>
+										<div class="mline"></div>
+									</div>
+								</div>
+							</div>
+							<div class="phase">阶段 D · 返程</div>
+							<div class="seq-row">
+								<div class="msg res left" style="grid-column:1/5;--span:4">
+									<div class="minner">
+										<div class="mlabel">
+											<span class="n">14</span>200 JSON · 带 CORS 头 ·
+											原路返回(Lambda → API GW → 浏览器)→ React Query
+											更新缓存,页面亮出你的头像
+										</div>
+										<div class="mline"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<h3>沿途每一站在做什么(对照上图编号)</h3>
+				<ol class="steps">
+					<li>
+						<div>
+							<div class="st">01–02 · 静态加载,AWS 全程没参与</div>
+							<div class="sd">
+								页面本身来自 Cloudflare 离你最近的边缘节点。注意 02:后端地址
+								<code>x87lulppwh...</code>
+								是<b>构建时</b>被 Vite 烧进 JS
+								的,运行时改不了——这就是为什么换后端地址必须重新构建前端。
+							</div>
+						</div>
+					</li>
+					<li>
+						<div>
+							<div class="st">03–05 · 预检:浏览器替你「敲门问路」</div>
+							<div class="sd">
+								因为这是跨域的 JSON POST(非简单请求),浏览器强制先发 OPTIONS
+								探路。后端的应答里 <code>Allow-Origin</code> 必须<b>精确等于</b>
+								<code>https://hl-aigc.pages.dev</code>(通配符 * 不允许配合
+								cookie 使用)。预检通过后浏览器会缓存一段时间,不是每次都问。
+							</div>
+						</div>
+					</li>
+					<li>
+						<div>
+							<div class="st">06–07 · 进入 AWS:HTTP 在这里「变形」成事件</div>
+							<div class="sd">
+								API Gateway 是公开的托管端点(Path
+								①),它不跑你的代码,只做翻译和投递。Lambda
+								不是常驻服务器——没有空闲实例时 AWS
+								现场拉起一个(冷启动),所以偶尔第一下点击会慢一两秒,紧接着再点就快了。你演示时如果先手动访问一次页面「热身」,体验会更稳。
+							</div>
+						</div>
+					</li>
+					<li>
+						<div>
+							<div class="st">
+								08–10 · 身份验证:cookie 不是凭证本体,数据库里的 session 才是
+							</div>
+							<div class="sd">
+								cookie 里只是一个不透明的 session token;better-auth
+								拿它去数据库查(09,走内网 Path
+								②),查到未过期的会话才算登录有效。这就是为什么我把你升级成 admin
+								后要你<b>重新登录</b>——角色信息跟着会话查询走。
+							</div>
+						</div>
+					</li>
+					<li>
+						<div>
+							<div class="st">
+								11–12 · 替你去 GitHub:整条链路里唯一一次「出园区」
+							</div>
+							<div class="sd">
+								Lambda 在私有子网,没有公网身份,这次外呼走的是 Path ③:NAT
+								把源地址换成自己的公网 IP 再出正门。GitHub 看到的访问者是
+								NAT,不是你也不是 Lambda。你的 token
+								只在这一步的请求头里出现,用完即弃,不落库。
+							</div>
+						</div>
+					</li>
+					<li>
+						<div>
+							<div class="st">13–14 · 写库与返程</div>
+							<div class="sd">
+								UPSERT 语义保证「同一 GitHub
+								用户重复同步不产生重复记录」(你测过的那条验收标准就是这里实现的)。响应沿原路返回,浏览器校验
+								CORS 头后把 JSON 交给 React Query,界面更新。全程(热实例)约
+								300–800ms,其中大头往往是第 11 步等 GitHub 应答。
+							</div>
+						</div>
+					</li>
+				</ol>
+
+				<div class="why">
+					<b>把两张图串起来:</b>这次请求用到了四条路径中的三条——用户进来走 Path
+					①,查会话/写数据走 Path ②,调 GitHub 走 Path ③。唯独 Path
+					④(跳板机)不在请求链路上,它是给「人」用的运维通道。如果你能独立说出「为什么第
+					11 步需要 NAT 而第 09 步不需要」,这两个知识点就算真正掌握了。
+				</div>
+
+				<h3>自测五题(答案点开看)</h3>
+				<details>
+					<summary>1. 用户的 API 请求会经过 Internet Gateway 吗?</summary>
+					<p>
+						不会。请求终点是 VPC 外的 API Gateway 托管端点,Lambda 由 AWS
+						内部机制触发。IGW 只承载 NAT 出网流量和你 SSH 跳板机的流量。
+					</p>
+				</details>
+				<details>
+					<summary>2. 把 NAT Gateway 删掉,哪个功能最先坏?怎么坏?</summary>
+					<p>
+						GitHub 同步。第 11 步 Lambda 出不了网,请求会挂起直到 30
+						秒超时。而登录、Dashboard、字段管理照常工作——它们只用内网的 Path ②。
+					</p>
+				</details>
+				<details>
+					<summary>
+						3. 为什么 psql 连 127.0.0.1:15432 却能操作千里之外的 Aurora?
+					</summary>
+					<p>
+						SSH 本地端口转发:ssh 在本机监听
+						15432,把收到的字节加密搬运到跳板机,由跳板机在 VPC 内网代连 Aurora 的
+						5432。psql 全程以为自己在连本地库。
+					</p>
+				</details>
+				<details>
+					<summary>
+						4. db-sg 的放行规则里写的不是 IP,而是另外两个安全组的 ID,好处是什么?
+					</summary>
+					<p>
+						成员制白名单:未来 Lambda 扩容、换网卡、IP 变化都无所谓——只要它还挂着
+						lambda-sg 这个「工牌」,规则自动生效,不用维护 IP 清单。
+					</p>
+				</details>
+				<details>
+					<summary>5. 为什么明明只有一个数据库实例,却要两个私有子网?</summary>
+					<p>
+						RDS 的硬性规定:DBSubnetGroup
+						必须覆盖至少两个可用区,即使单实例也要为故障转移预留位置。所以
+						10.0.2.0/24 里现在几乎是空的,但必须存在。
+					</p>
+				</details>
+			</section>
+		</div>
+	</body>
+</html>
