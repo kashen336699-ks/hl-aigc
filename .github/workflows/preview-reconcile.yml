@@ -1,0 +1,157 @@
+name: Preview Reconcile
+
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+concurrency:
+  group: preview-reconcile
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-2
+  CLUSTER: hl-aigc
+
+jobs:
+  detect-orphans:
+    runs-on: ubuntu-latest
+    outputs:
+      orphan-prs: ${{ steps.detect.outputs.orphan-prs }}
+    steps:
+      - name: Assume preview deploy role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/hl-aigc-preview-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Find preview resources without an open pull request
+        id: detect
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: ${{ vars.CF_ZONE_ID }}
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_DOMAIN: ${{ vars.PREVIEW_DOMAIN }}
+          PREVIEW_LISTENER_ARN: ${{ vars.PREVIEW_LISTENER_ARN }}
+          PREVIEW_VPC_ID: ${{ vars.PREVIEW_VPC_ID }}
+        run: |
+          set -euo pipefail
+
+          : "${CF_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
+          : "${CF_ZONE_ID:?CF_ZONE_ID is required}"
+          : "${PREVIEW_DOMAIN:?PREVIEW_DOMAIN is required}"
+          : "${PREVIEW_LISTENER_ARN:?PREVIEW_LISTENER_ARN is required}"
+          : "${PREVIEW_VPC_ID:?PREVIEW_VPC_ID is required}"
+
+          OPEN_PRS=$(gh api --paginate \
+            "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" \
+            --jq '.[].number' | jq -s 'map(tonumber) | unique | sort')
+          RESOURCE_PRS='[]'
+          ORPHAN_PRS='[]'
+
+          add_resource_pr() {
+            local pr_number="$1"
+            if [[ "$pr_number" =~ ^[0-9]+$ ]] \
+              && (( pr_number >= 1 && pr_number <= 50000 )); then
+              RESOURCE_PRS=$(jq -c --argjson number "$pr_number" \
+                '. + [$number] | unique | sort' <<<"$RESOURCE_PRS")
+            fi
+          }
+
+          SERVICE_ARNS=$(aws ecs list-services \
+            --cluster "$CLUSTER" \
+            --query 'serviceArns[]' \
+            --output text)
+          for SERVICE_ARN in $SERVICE_ARNS; do
+            SERVICE_NAME=${SERVICE_ARN##*/}
+            if [[ "$SERVICE_NAME" =~ ^pr-([0-9]+)$ ]]; then
+              add_resource_pr "${BASH_REMATCH[1]}"
+            fi
+          done
+
+          TARGET_GROUPS_JSON=$(aws elbv2 describe-target-groups --output json)
+          TARGET_GROUP_NAMES=$(jq -r --arg vpc "$PREVIEW_VPC_ID" \
+            '.TargetGroups[] | select(.VpcId == $vpc) | .TargetGroupName' \
+            <<<"$TARGET_GROUPS_JSON")
+          while IFS= read -r TARGET_GROUP_NAME; do
+            if [[ "$TARGET_GROUP_NAME" =~ ^pr-([0-9]+)-go$ ]]; then
+              add_resource_pr "${BASH_REMATCH[1]}"
+            fi
+          done <<<"$TARGET_GROUP_NAMES"
+
+          RULES_JSON=$(aws elbv2 describe-rules \
+            --listener-arn "$PREVIEW_LISTENER_ARN" --output json)
+          RULE_HOSTS=$(jq -r '
+            .Rules[].Conditions[]?
+            | select(.Field == "host-header")
+            | (.HostHeaderConfig.Values // .Values // [])[]
+          ' <<<"$RULES_JSON")
+          while IFS= read -r HOST_NAME; do
+            if [[ "$HOST_NAME" == api-pr-*.$PREVIEW_DOMAIN ]]; then
+              PR_NUMBER=${HOST_NAME#api-pr-}
+              PR_NUMBER=${PR_NUMBER%."$PREVIEW_DOMAIN"}
+              add_resource_pr "$PR_NUMBER"
+            fi
+          done <<<"$RULE_HOSTS"
+
+          IMAGES_JSON=$(aws ecr list-images \
+            --repository-name hl-aigc/go-api \
+            --filter tagStatus=TAGGED --output json)
+          IMAGE_TAGS=$(jq -r '.imageIds[].imageTag // empty' <<<"$IMAGES_JSON")
+          while IFS= read -r IMAGE_TAG; do
+            if [[ "$IMAGE_TAG" =~ ^pr-([0-9]+)(-[0-9a-f]{40})?$ ]]; then
+              add_resource_pr "${BASH_REMATCH[1]}"
+            fi
+          done <<<"$IMAGE_TAGS"
+
+          CF_API="https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records"
+          PAGE=1
+          while true; do
+            DNS_RESPONSE=$(curl --silent --show-error --fail-with-body \
+              --get "$CF_API" \
+              --header "Authorization: Bearer $CF_TOKEN" \
+              --data-urlencode "type=CNAME" \
+              --data-urlencode "page=$PAGE" \
+              --data-urlencode "per_page=100")
+            jq -e '.success == true' >/dev/null <<<"$DNS_RESPONSE"
+            while IFS= read -r HOST_NAME; do
+              if [[ "$HOST_NAME" == api-pr-*.$PREVIEW_DOMAIN ]]; then
+                PR_NUMBER=${HOST_NAME#api-pr-}
+                PR_NUMBER=${PR_NUMBER%."$PREVIEW_DOMAIN"}
+                add_resource_pr "$PR_NUMBER"
+              fi
+            done < <(jq -r '.result[].name' <<<"$DNS_RESPONSE")
+            TOTAL_PAGES=$(jq -r '.result_info.total_pages // 1' <<<"$DNS_RESPONSE")
+            (( PAGE >= TOTAL_PAGES )) && break
+            (( PAGE += 1 ))
+          done
+
+          for PR_NUMBER in $(jq -r '.[]' <<<"$RESOURCE_PRS"); do
+            if ! jq -e --argjson number "$PR_NUMBER" \
+              'index($number) != null' >/dev/null <<<"$OPEN_PRS"; then
+              ORPHAN_PRS=$(jq -c --argjson number "$PR_NUMBER" \
+                '. + [$number] | unique | sort' <<<"$ORPHAN_PRS")
+            fi
+          done
+
+          echo "Discovered preview PRs: $RESOURCE_PRS"
+          echo "Open pull requests: $OPEN_PRS"
+          echo "orphan-prs=$ORPHAN_PRS" >>"$GITHUB_OUTPUT"
+          echo "Orphan preview PRs: $ORPHAN_PRS"
+
+  cleanup:
+    if: ${{ needs.detect-orphans.outputs.orphan-prs != '' && needs.detect-orphans.outputs.orphan-prs != '[]' }}
+    needs: detect-orphans
+    strategy:
+      fail-fast: false
+      matrix:
+        pr: ${{ fromJSON(needs.detect-orphans.outputs.orphan-prs) }}
+    uses: ./.github/workflows/pr-cleanup.yml
+    with:
+      pr_number: ${{ matrix.pr }}
+    secrets: inherit

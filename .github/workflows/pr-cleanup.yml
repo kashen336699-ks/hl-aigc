@@ -1,0 +1,247 @@
+name: PR Preview Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to clean up
+        required: true
+        type: number
+  workflow_call:
+    inputs:
+      pr_number:
+        description: Pull request number to clean up
+        required: true
+        type: number
+    secrets:
+      CLOUDFLARE_API_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+concurrency:
+  group: pr-preview-${{ inputs.pr_number || github.event.number }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-east-2
+  CLUSTER: hl-aigc
+
+jobs:
+  destroy:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    env:
+      CF_ZONE_ID: ${{ vars.CF_ZONE_ID }}
+      HOST: api-pr-${{ inputs.pr_number || github.event.number }}.${{ vars.PREVIEW_DOMAIN }}
+      PREVIEW_ALB_DNS: ${{ vars.PREVIEW_ALB_DNS }}
+      PREVIEW_LISTENER_ARN: ${{ vars.PREVIEW_LISTENER_ARN }}
+      PR: ${{ inputs.pr_number || github.event.number }}
+    steps:
+      - name: Assume preview deploy role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/hl-aigc-preview-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Destroy preview resources
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          : "${CF_TOKEN:?CLOUDFLARE_API_TOKEN is required}"
+          : "${CF_ZONE_ID:?CF_ZONE_ID is required}"
+          : "${PREVIEW_ALB_DNS:?PREVIEW_ALB_DNS is required}"
+          : "${PREVIEW_LISTENER_ARN:?PREVIEW_LISTENER_ARN is required}"
+          if ! [[ "$PR" =~ ^[0-9]+$ ]] || (( PR < 1 || PR > 50000 )); then
+            echo "Invalid PR number: $PR" >&2
+            exit 1
+          fi
+
+          SERVICE_STATUS=$(aws ecs describe-services \
+            --cluster "$CLUSTER" \
+            --services "pr-$PR" \
+            --query 'services[0].status' \
+            --output text)
+          if [[ "$SERVICE_STATUS" == "ACTIVE" ]]; then
+            aws ecs delete-service \
+              --cluster "$CLUSTER" \
+              --service "pr-$PR" \
+              --force >/dev/null
+          fi
+          if [[ -n "$SERVICE_STATUS" && "$SERVICE_STATUS" != "None" && "$SERVICE_STATUS" != "INACTIVE" ]]; then
+            aws ecs wait services-inactive \
+              --cluster "$CLUSTER" \
+              --services "pr-$PR"
+          fi
+
+          RULES_JSON=$(aws elbv2 describe-rules \
+            --listener-arn "$PREVIEW_LISTENER_ARN" \
+            --output json)
+          RULE_ARN=$(jq -r --arg priority "$PR" \
+            '[.Rules[] | select(.Priority == $priority) | .RuleArn][0] // empty' \
+            <<<"$RULES_JSON")
+          if [[ -n "$RULE_ARN" ]]; then
+            RULE_HOST=$(jq -r --arg priority "$PR" '
+              [.Rules[] | select(.Priority == $priority)][0]
+              | [.Conditions[]? | select(.Field == "host-header")
+                  | (.HostHeaderConfig.Values // .Values // [])[]][0] // empty
+            ' <<<"$RULES_JSON")
+            if [[ "$RULE_HOST" != "$HOST" ]]; then
+              echo "Listener priority $PR belongs to $RULE_HOST, not $HOST" >&2
+              exit 1
+            fi
+            aws elbv2 delete-rule --rule-arn "$RULE_ARN"
+          fi
+
+          set +e
+          TARGET_GROUP_RESULT=$(aws elbv2 describe-target-groups \
+            --names "pr-$PR-go" --output json 2>&1)
+          TARGET_GROUP_STATUS=$?
+          set -e
+          if (( TARGET_GROUP_STATUS != 0 )); then
+            if [[ "$TARGET_GROUP_RESULT" != *"TargetGroupNotFound"* ]]; then
+              echo "$TARGET_GROUP_RESULT" >&2
+              exit "$TARGET_GROUP_STATUS"
+            fi
+            TARGET_GROUP_ARN=""
+          else
+            TARGET_GROUP_ARN=$(jq -r '.TargetGroups[0].TargetGroupArn // empty' \
+              <<<"$TARGET_GROUP_RESULT")
+          fi
+          if [[ -n "$TARGET_GROUP_ARN" ]]; then
+            TARGET_GROUP_DELETED=false
+            for _ in $(seq 1 18); do
+              if aws elbv2 delete-target-group \
+                --target-group-arn "$TARGET_GROUP_ARN"; then
+                TARGET_GROUP_DELETED=true
+                break
+              fi
+              sleep 10
+            done
+            if [[ "$TARGET_GROUP_DELETED" != "true" ]]; then
+              echo "Timed out deleting target group pr-$PR-go" >&2
+              exit 1
+            fi
+          fi
+
+          CF_API="https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records"
+          LOOKUP_RESPONSE=$(curl --silent --show-error --fail-with-body \
+            --get "$CF_API" \
+            --header "Authorization: Bearer $CF_TOKEN" \
+            --data-urlencode "type=CNAME" \
+            --data-urlencode "name=$HOST")
+          jq -e '.success == true' >/dev/null <<<"$LOOKUP_RESPONSE"
+          RECORD_COUNT=$(jq '.result | length' <<<"$LOOKUP_RESPONSE")
+          if (( RECORD_COUNT > 1 )); then
+            echo "Multiple DNS records found for $HOST" >&2
+            exit 1
+          fi
+          RECORD_ID=$(jq -r '.result[0].id // empty' <<<"$LOOKUP_RESPONSE")
+          if [[ -n "$RECORD_ID" ]]; then
+            jq -e --arg host "$HOST" --arg target "$PREVIEW_ALB_DNS" '
+              .result[0].type == "CNAME"
+                and .result[0].name == $host
+                and .result[0].content == $target
+                and .result[0].proxied == false
+            ' >/dev/null <<<"$LOOKUP_RESPONSE" || {
+              echo "DNS record $HOST does not match the preview contract" >&2
+              exit 1
+            }
+            DELETE_RESPONSE=$(curl --silent --show-error --fail-with-body \
+              --request DELETE "$CF_API/$RECORD_ID" \
+              --header "Authorization: Bearer $CF_TOKEN")
+            jq -e '.success == true' >/dev/null <<<"$DELETE_RESPONSE"
+          fi
+
+          IMAGE_IDS=$(aws ecr list-images \
+            --repository-name hl-aigc/go-api \
+            --filter tagStatus=TAGGED \
+            --output json \
+            | jq -c --arg prefix "pr-$PR" '
+                [.imageIds[]
+                  | select(
+                      .imageTag == $prefix
+                      or (.imageTag | startswith($prefix + "-"))
+                    )
+                ]
+              ')
+          IMAGE_COUNT=$(jq 'length' <<<"$IMAGE_IDS")
+          for (( OFFSET = 0; OFFSET < IMAGE_COUNT; OFFSET += 100 )); do
+            IMAGE_BATCH=$(jq -c ".[$OFFSET:$((OFFSET + 100))]" <<<"$IMAGE_IDS")
+            aws ecr batch-delete-image \
+              --repository-name hl-aigc/go-api \
+              --image-ids "$IMAGE_BATCH" >/dev/null
+          done
+
+          SERVICE_AFTER=$(aws ecs describe-services \
+            --cluster "$CLUSTER" --services "pr-$PR" \
+            --query 'services[0].status' --output text)
+          if [[ "$SERVICE_AFTER" != "None" && "$SERVICE_AFTER" != "INACTIVE" ]]; then
+            echo "ECS service pr-$PR still has status $SERVICE_AFTER" >&2
+            exit 1
+          fi
+
+          RULE_AFTER=$(aws elbv2 describe-rules \
+            --listener-arn "$PREVIEW_LISTENER_ARN" --output json \
+            | jq -r --arg priority "$PR" \
+              '[.Rules[] | select(.Priority == $priority)] | length')
+          if (( RULE_AFTER != 0 )); then
+            echo "Listener rule priority $PR still exists" >&2
+            exit 1
+          fi
+
+          set +e
+          TARGET_GROUP_AFTER=$(aws elbv2 describe-target-groups \
+            --names "pr-$PR-go" --output json 2>&1)
+          TARGET_GROUP_AFTER_STATUS=$?
+          set -e
+          if (( TARGET_GROUP_AFTER_STATUS == 0 )); then
+            echo "Target group pr-$PR-go still exists" >&2
+            exit 1
+          fi
+          if [[ "$TARGET_GROUP_AFTER" != *"TargetGroupNotFound"* ]]; then
+            echo "$TARGET_GROUP_AFTER" >&2
+            exit "$TARGET_GROUP_AFTER_STATUS"
+          fi
+
+          DNS_AFTER=$(curl --silent --show-error --fail-with-body \
+            --get "$CF_API" \
+            --header "Authorization: Bearer $CF_TOKEN" \
+            --data-urlencode "type=CNAME" \
+            --data-urlencode "name=$HOST")
+          jq -e '.success == true and (.result | length) == 0' \
+            >/dev/null <<<"$DNS_AFTER"
+
+          IMAGE_COUNT_AFTER=$(aws ecr list-images \
+            --repository-name hl-aigc/go-api \
+            --filter tagStatus=TAGGED \
+            --output json \
+            | jq --arg prefix "pr-$PR" '
+                [.imageIds[]
+                  | select(
+                      .imageTag == $prefix
+                      or (.imageTag | startswith($prefix + "-"))
+                    )
+                ]
+                | length
+              ')
+          if (( IMAGE_COUNT_AFTER != 0 )); then
+            echo "One or more ECR tags for PR #$PR still exist" >&2
+            exit 1
+          fi
+
+      - name: Comment on closed pull request
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment "$PR" \
+            --repo "$GITHUB_REPOSITORY" \
+            --body "🧹 预览环境已销毁并验证清理完成"

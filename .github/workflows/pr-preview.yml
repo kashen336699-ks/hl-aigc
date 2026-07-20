@@ -1,0 +1,308 @@
+name: PR Preview
+
+# Security boundary for this homework: only same-repository pull requests run
+# this workflow, and collaborators who can push branches are trusted.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-east-2
+  AWS_PAGER: ""
+  ECS_CLUSTER: hl-aigc
+
+jobs:
+  validate:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Validate preview number
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$PR_NUMBER" =~ ^[0-9]+$ ]] || (( PR_NUMBER < 1 || PR_NUMBER > 50000 )); then
+            echo "::error::PR number must be an integer from 1 through 50000"
+            exit 1
+          fi
+
+  build:
+    needs: validate
+    if: needs.validate.result == 'success' && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      id-token: write
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Assume CodeBuild trigger role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/hl-aigc-pr-trigger
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build PR image in CodeBuild
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          IMAGE_TAG: pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          build_id=$(aws codebuild start-build \
+            --project-name hl-aigc-pr-build \
+            --source-version "$HEAD_SHA" \
+            --environment-variables-override "name=IMAGE_TAG,value=$IMAGE_TAG,type=PLAINTEXT" \
+            --query 'build.id' --output text)
+          echo "CodeBuild: $build_id"
+
+          while true; do
+            build_status=$(aws codebuild batch-get-builds --ids "$build_id" \
+              --query 'builds[0].buildStatus' --output text)
+            case "$build_status" in
+              IN_PROGRESS) sleep 15 ;;
+              SUCCEEDED) break ;;
+              *)
+                echo "::error::CodeBuild failed with status: $build_status"
+                exit 1
+                ;;
+            esac
+          done
+
+  deploy:
+    needs: build
+    if: needs.build.result == 'success' && github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      CF_ZONE_ID: ${{ vars.CF_ZONE_ID }}
+      EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      HOST: api-pr-${{ github.event.pull_request.number }}.${{ vars.PREVIEW_DOMAIN }}
+      IMAGE_TAG: pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PREVIEW_ALB_DNS: ${{ vars.PREVIEW_ALB_DNS }}
+      PREVIEW_DOMAIN: ${{ vars.PREVIEW_DOMAIN }}
+      PREVIEW_LISTENER_ARN: ${{ vars.PREVIEW_LISTENER_ARN }}
+      PREVIEW_SG: ${{ vars.PREVIEW_SG }}
+      PREVIEW_SUBNETS: ${{ vars.PREVIEW_SUBNETS }}
+      PREVIEW_VPC_ID: ${{ vars.PREVIEW_VPC_ID }}
+    steps:
+      - name: Check out trusted task definition
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Validate deployment inputs
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || fail "Invalid PR number"
+          (( PR_NUMBER >= 1 && PR_NUMBER <= 50000 )) || fail "PR number must be from 1 through 50000"
+          [[ "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]] || fail "Invalid AWS_ACCOUNT_ID"
+          [[ "$PREVIEW_VPC_ID" =~ ^vpc-[0-9a-f]+$ ]] || fail "Invalid PREVIEW_VPC_ID"
+          [[ "$PREVIEW_SG" =~ ^sg-[0-9a-f]+$ ]] || fail "Invalid PREVIEW_SG"
+          [[ "$PREVIEW_SUBNETS" =~ ^subnet-[0-9a-f]+(,subnet-[0-9a-f]+)+$ ]] || fail "Invalid PREVIEW_SUBNETS"
+          [[ "$PREVIEW_DOMAIN" =~ ^[a-z0-9.-]+$ ]] || fail "Invalid PREVIEW_DOMAIN"
+          [[ "$PREVIEW_ALB_DNS" == *."$AWS_REGION".elb.amazonaws.com ]] || fail "Invalid PREVIEW_ALB_DNS"
+          [[ "$PREVIEW_LISTENER_ARN" == arn:aws:elasticloadbalancing:"$AWS_REGION":"$AWS_ACCOUNT_ID":listener/app/* ]] || fail "Invalid PREVIEW_LISTENER_ARN"
+          [[ "$CF_ZONE_ID" =~ ^[0-9a-fA-F]{32}$ ]] || fail "Invalid CF_ZONE_ID"
+
+      - name: Verify pull request is still current
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          pull_request=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")
+          current_state=$(jq -r '.state' <<< "$pull_request")
+          current_head_sha=$(jq -r '.head.sha' <<< "$pull_request")
+          current_head_repo=$(jq -r '.head.repo.full_name' <<< "$pull_request")
+          if [[ "$current_state" != "open" ]]; then
+            echo "::error::Pull request #$PR_NUMBER is no longer open"
+            exit 1
+          fi
+          if [[ "$current_head_sha" != "$EXPECTED_HEAD_SHA" ]]; then
+            echo "::error::Pull request head changed while the image was building"
+            exit 1
+          fi
+          if [[ "$current_head_repo" != "$GITHUB_REPOSITORY" ]]; then
+            echo "::error::Fork pull requests are not eligible for previews"
+            exit 1
+          fi
+
+      - name: Assume preview deploy role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/hl-aigc-preview-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy task definition, target group, rule, and service
+        run: |
+          set -euo pipefail
+          image="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/hl-aigc/go-api:$IMAGE_TAG"
+          rendered_taskdef="$RUNNER_TEMP/preview-taskdef-$PR_NUMBER.json"
+          sed -e "s|__PR__|$PR_NUMBER|g" \
+            -e "s|__IMAGE__|$image|g" \
+            -e "s|__ACCOUNT__|$AWS_ACCOUNT_ID|g" \
+            .aws/preview-taskdef.json > "$rendered_taskdef"
+          if grep -Eq '__PR__|__IMAGE__|__ACCOUNT__' "$rendered_taskdef"; then
+            echo "::error::Unresolved task definition placeholder"
+            exit 1
+          fi
+          jq -e . "$rendered_taskdef" > /dev/null
+          task_definition_arn=$(aws ecs register-task-definition \
+            --cli-input-json "file://$rendered_taskdef" \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          target_group_name="pr-$PR_NUMBER-go"
+          set +e
+          target_group_result=$(aws elbv2 describe-target-groups \
+            --names "$target_group_name" --output json 2>&1)
+          target_group_status=$?
+          set -e
+          if (( target_group_status != 0 )); then
+            if [[ "$target_group_result" != *"TargetGroupNotFound"* ]]; then
+              echo "$target_group_result" >&2
+              exit "$target_group_status"
+            fi
+            target_group_arn=""
+          else
+            target_group_arn=$(jq -r '.TargetGroups[0].TargetGroupArn // empty' \
+              <<< "$target_group_result")
+          fi
+          if [[ -z "$target_group_arn" ]]; then
+            target_group_arn=$(aws elbv2 create-target-group \
+              --name "$target_group_name" --protocol HTTP --port 8080 \
+              --vpc-id "$PREVIEW_VPC_ID" --target-type ip \
+              --health-check-protocol HTTP --health-check-path /healthz \
+              --query 'TargetGroups[0].TargetGroupArn' --output text)
+          else
+            target_group_json=$(aws elbv2 describe-target-groups --target-group-arns "$target_group_arn")
+            jq -e --arg vpc "$PREVIEW_VPC_ID" '
+              .TargetGroups[0]
+              | .VpcId == $vpc and .Protocol == "HTTP" and .Port == 8080
+                and .TargetType == "ip" and .HealthCheckPath == "/healthz"
+            ' <<< "$target_group_json" > /dev/null || {
+              echo "::error::Existing target group does not match the preview contract"
+              exit 1
+            }
+          fi
+
+          rules_json=$(aws elbv2 describe-rules \
+            --listener-arn "$PREVIEW_LISTENER_ARN" --output json)
+          rule_arn=$(jq -r --arg priority "$PR_NUMBER" \
+            '[.Rules[] | select(.Priority == $priority)][0].RuleArn // empty' \
+            <<< "$rules_json")
+          if [[ -z "$rule_arn" ]]; then
+            aws elbv2 create-rule --listener-arn "$PREVIEW_LISTENER_ARN" \
+              --priority "$PR_NUMBER" \
+              --conditions "Field=host-header,Values=$HOST" \
+              --actions "Type=forward,TargetGroupArn=$target_group_arn" > /dev/null
+          else
+            existing_host=$(jq -r --arg priority "$PR_NUMBER" '
+              [.Rules[] | select(.Priority == $priority)][0]
+              | [.Conditions[]? | select(.Field == "host-header")
+                  | (.HostHeaderConfig.Values // .Values // [])[]][0] // empty
+            ' <<< "$rules_json")
+            if [[ "$existing_host" != "$HOST" ]]; then
+              echo "::error::Listener priority $PR_NUMBER belongs to $existing_host, not $HOST"
+              exit 1
+            fi
+            aws elbv2 modify-rule --rule-arn "$rule_arn" \
+              --conditions "Field=host-header,Values=$HOST" \
+              --actions "Type=forward,TargetGroupArn=$target_group_arn" > /dev/null
+          fi
+
+          network_configuration="awsvpcConfiguration={subnets=[$PREVIEW_SUBNETS],securityGroups=[$PREVIEW_SG],assignPublicIp=DISABLED}"
+          load_balancer="targetGroupArn=$target_group_arn,containerName=go-api,containerPort=8080"
+          service_json=$(aws ecs describe-services --cluster "$ECS_CLUSTER" --services "pr-$PR_NUMBER")
+          service_status=$(jq -r '.services[0].status // "MISSING"' <<< "$service_json")
+          if [[ "$service_status" == "ACTIVE" ]]; then
+            aws ecs update-service --cluster "$ECS_CLUSTER" --service "pr-$PR_NUMBER" \
+              --task-definition "$task_definition_arn" --desired-count 1 \
+              --network-configuration "$network_configuration" \
+              --load-balancers "$load_balancer" --force-new-deployment > /dev/null
+          else
+            if [[ "$service_status" == "DRAINING" ]]; then
+              aws ecs wait services-inactive --cluster "$ECS_CLUSTER" --services "pr-$PR_NUMBER"
+            elif [[ "$service_status" != "MISSING" && "$service_status" != "INACTIVE" ]]; then
+              echo "::error::Unexpected ECS service status: $service_status"
+              exit 1
+            fi
+            aws ecs create-service --cluster "$ECS_CLUSTER" --service-name "pr-$PR_NUMBER" \
+              --task-definition "$task_definition_arn" --desired-count 1 --launch-type FARGATE \
+              --network-configuration "$network_configuration" \
+              --load-balancers "$load_balancer" > /dev/null
+          fi
+          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "pr-$PR_NUMBER"
+
+      - name: Upsert DNS-only Cloudflare CNAME
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          [[ -n "$CF_TOKEN" ]] || { echo "::error::CLOUDFLARE_API_TOKEN is not configured"; exit 1; }
+          api="https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records"
+          lookup=$(curl --silent --show-error --fail-with-body --get "$api" \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            --data-urlencode "name=$HOST")
+          jq -e '.success == true' <<< "$lookup" > /dev/null || {
+            jq -c '{success, errors, messages}' <<< "$lookup" >&2
+            exit 1
+          }
+          record_count=$(jq '.result | length' <<< "$lookup")
+          (( record_count <= 1 )) || { echo "::error::Multiple DNS records found for $HOST"; exit 1; }
+          record_id=$(jq -r '.result[0].id // empty' <<< "$lookup")
+          body=$(jq -nc --arg host "$HOST" --arg target "$PREVIEW_ALB_DNS" \
+            '{type:"CNAME", name:$host, content:$target, proxied:false, ttl:60}')
+          if [[ -n "$record_id" ]]; then
+            result=$(curl --silent --show-error --fail-with-body -X PUT "$api/$record_id" \
+              -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \
+              --data "$body")
+          else
+            result=$(curl --silent --show-error --fail-with-body -X POST "$api" \
+              -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \
+              --data "$body")
+          fi
+          jq -e --arg host "$HOST" --arg target "$PREVIEW_ALB_DNS" '
+            .success == true and .result.type == "CNAME"
+              and .result.name == $host and .result.content == $target
+              and .result.proxied == false
+          ' <<< "$result" > /dev/null || {
+            jq -c '{success, errors, messages, result}' <<< "$result" >&2
+            exit 1
+          }
+
+      - name: Verify preview health
+        run: |
+          set -euo pipefail
+          for attempt in {1..30}; do
+            response=$(curl --silent --show-error --fail --max-time 10 "https://$HOST/healthz" || true)
+            if [[ "$response" == "ok" ]]; then
+              exit 0
+            fi
+            echo "Health check attempt $attempt/30 is not ready"
+            sleep 10
+          done
+          echo "::error::Preview health check did not return ok"
+          exit 1
+
+      - name: Comment preview URL
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$GH_REPO" --edit-last --create-if-none \
+            --body "🚀 预览环境已就绪：https://$HOST/healthz ｜ https://$HOST/intro/octocat"
