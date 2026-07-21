@@ -1,0 +1,2614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>周六作业实施指南 · Go × ECS × PR 预览</title>
+		<style>
+		:root {
+			--ink: #1a1f2e;
+			--muted: #5b6472;
+			--line: #e3e6ec;
+			--bg: #fafbfc;
+			--accent: #b45309;
+			--blue: #1d4ed8;
+			--green: #15803d;
+			--purple: #7c3aed;
+			--red: #b91c1c;
+			--code-bg: #16181d;
+			--code-ink: #d7dce4;
+		}
+		* {
+			box-sizing: border-box;
+			padding: 0;
+			margin: 0;
+		}
+		body {
+			font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+			font-size: 15px;
+			line-height: 1.75;
+			color: var(--ink);
+			background: var(--bg);
+		}
+		.wrap {
+			max-width: 1080px;
+			padding: 40px 28px 80px;
+			margin: 0 auto;
+		}
+		h1 {
+			margin-bottom: 6px;
+			font-size: 28px;
+		}
+		h2 {
+			padding-top: 20px;
+			margin: 56px 0 4px;
+			font-size: 21px;
+			border-top: 3px solid var(--ink);
+		}
+		h2 .no {
+			margin-right: 8px;
+			font-family: ui-monospace, monospace;
+			color: var(--accent);
+		}
+		h3 {
+			margin: 30px 0 8px;
+			font-size: 16.5px;
+		}
+		h4 {
+			margin: 22px 0 6px;
+			font-size: 14.5px;
+		}
+		h3 .step {
+			display: inline-block;
+			padding: 1px 8px;
+			margin-right: 8px;
+			font-family: ui-monospace, monospace;
+			font-size: 12px;
+			vertical-align: 2px;
+			color: #fff;
+			background: var(--ink);
+			border-radius: 4px;
+		}
+		p,
+		ul,
+		ol {
+			margin: 8px 0;
+		}
+		ul,
+		ol {
+			padding-left: 24px;
+		}
+		li {
+			margin: 4px 0;
+		}
+		.sub {
+			margin-bottom: 24px;
+			font-size: 14px;
+			color: var(--muted);
+		}
+		strong {
+			font-weight: 650;
+		}
+		code {
+			padding: 1px 5px;
+			font-family: ui-monospace, "SF Mono", Menlo, monospace;
+			font-size: 13px;
+			background: #eef0f4;
+			border-radius: 4px;
+		}
+		pre {
+			padding: 14px 16px;
+			margin: 10px 0;
+			overflow-x: auto;
+			color: var(--code-ink);
+			background: var(--code-bg);
+			border-radius: 8px;
+		}
+		pre code {
+			padding: 0;
+			font-size: 12.5px;
+			line-height: 1.6;
+			color: inherit;
+			background: none;
+		}
+		table {
+			width: 100%;
+			margin: 10px 0;
+			font-size: 13.5px;
+			border-collapse: collapse;
+		}
+		th,
+		td {
+			padding: 6px 10px;
+			vertical-align: top;
+			text-align: left;
+			border: 1px solid var(--line);
+		}
+		th {
+			font-weight: 650;
+			white-space: nowrap;
+			background: #f1f3f7;
+		}
+		td code {
+			white-space: nowrap;
+		}
+		.note {
+			padding: 8px 14px;
+			margin: 12px 0;
+			font-size: 14px;
+			background: #eff4ff;
+			border-left: 4px solid var(--blue);
+			border-radius: 0 8px 8px 0;
+		}
+		.warn {
+			padding: 8px 14px;
+			margin: 12px 0;
+			font-size: 14px;
+			background: #fef2f2;
+			border-left: 4px solid var(--red);
+			border-radius: 0 8px 8px 0;
+		}
+		.check {
+			padding: 8px 14px;
+			margin: 12px 0;
+			font-size: 14px;
+			background: #f0fdf4;
+			border-left: 4px solid var(--green);
+			border-radius: 0 8px 8px 0;
+		}
+		.check::before {
+			font-weight: 700;
+			color: var(--green);
+			content: "✅ 验收点 ";
+		}
+		.warn::before {
+			font-weight: 700;
+			color: var(--red);
+			content: "⚠️ 坑 ";
+		}
+		.why {
+			font-size: 13.5px;
+			color: var(--muted);
+		}
+		.why::before {
+			font-weight: 650;
+			content: "为什么：";
+		}
+
+		/* ---------- 架构图 ---------- */
+		.diag {
+			padding: 18px;
+			margin: 16px 0;
+			overflow-x: auto;
+			background: #fff;
+			border: 1px solid var(--line);
+			border-radius: 12px;
+		}
+		.diag-title {
+			margin-bottom: 12px;
+			font-size: 13px;
+			font-weight: 700;
+			color: var(--muted);
+			letter-spacing: 1px;
+		}
+		.row {
+			display: flex;
+			flex-wrap: nowrap;
+			gap: 0;
+			align-items: stretch;
+			min-width: 720px;
+			margin: 8px 0;
+		}
+		.node {
+			flex-shrink: 0;
+			align-self: center;
+			padding: 7px 12px;
+			font-size: 13px;
+			font-weight: 650;
+			text-align: center;
+			background: #fff;
+			border: 1.5px solid var(--ink);
+			border-radius: 8px;
+		}
+		.node small {
+			display: block;
+			margin-top: 2px;
+			font-size: 11.5px;
+			font-weight: 400;
+			line-height: 1.45;
+			color: var(--muted);
+		}
+		.node.cf {
+			background: #fff7ed;
+			border-color: #ea580c;
+		}
+		.node.aws {
+			background: #fffbeb;
+			border-color: var(--accent);
+		}
+		.node.gh {
+			background: #f4f4f5;
+			border-color: #333;
+		}
+		.node.db {
+			background: #eff6ff;
+			border-color: var(--blue);
+		}
+		.node.ext {
+			border-style: dashed;
+		}
+		.node.hot {
+			background: #f0fdf4;
+			border-color: var(--green);
+		}
+		.arr {
+			flex-shrink: 0;
+			align-self: center;
+			padding: 0 6px;
+			font-size: 11.5px;
+			line-height: 1.3;
+			color: var(--muted);
+			text-align: center;
+		}
+		.arr b {
+			display: block;
+			font-size: 15px;
+			line-height: 1;
+			color: var(--ink);
+		}
+		.zone {
+			padding: 10px 12px;
+			margin: 10px 0;
+			border: 2px dashed;
+			border-radius: 10px;
+		}
+		.zone > .zlabel {
+			margin-bottom: 6px;
+			font-size: 12px;
+			font-weight: 700;
+		}
+		.zone.z-aws {
+			border-color: var(--accent);
+		}
+		.zone.z-aws > .zlabel {
+			color: var(--accent);
+		}
+		.zone.z-vpc {
+			border-color: var(--green);
+		}
+		.zone.z-vpc > .zlabel {
+			color: var(--green);
+		}
+		.zone.z-pub {
+			background: #f0fdff;
+			border-color: #0891b2;
+		}
+		.zone.z-pub > .zlabel {
+			color: #0891b2;
+		}
+		.zone.z-priv {
+			background: #f8faff;
+			border-color: var(--blue);
+		}
+		.zone.z-priv > .zlabel {
+			color: var(--blue);
+		}
+		.zone.z-build {
+			background: #faf5ff;
+			border-color: var(--purple);
+		}
+		.zone.z-build > .zlabel {
+			color: var(--purple);
+		}
+		.zone.z-deploy {
+			background: #f8faff;
+			border-color: var(--blue);
+		}
+		.zone.z-deploy > .zlabel {
+			color: var(--blue);
+		}
+		.zone.z-run {
+			background: #f7fef9;
+			border-color: var(--green);
+		}
+		.zone.z-run > .zlabel {
+			color: var(--green);
+		}
+		.zone.z-clean {
+			background: #fff8f8;
+			border-color: var(--red);
+		}
+		.zone.z-clean > .zlabel {
+			color: var(--red);
+		}
+		.badge {
+			display: inline-block;
+			padding: 0 6px;
+			margin-left: 4px;
+			font-size: 11px;
+			font-weight: 700;
+			border-radius: 4px;
+		}
+		.badge.r {
+			color: var(--red);
+			background: #fee2e2;
+		}
+		.badge.g {
+			color: var(--green);
+			background: #dcfce7;
+		}
+		.badge.b {
+			color: var(--blue);
+			background: #dbeafe;
+		}
+		.journey {
+			padding-left: 0;
+			counter-reset: j;
+		}
+		.journey li {
+			position: relative;
+			padding-left: 34px;
+			margin: 6px 0;
+			list-style: none;
+		}
+		.journey li::before {
+			position: absolute;
+			top: 3px;
+			left: 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 22px;
+			height: 22px;
+			font-size: 12px;
+			font-weight: 700;
+			color: #fff;
+			content: counter(j);
+			counter-increment: j;
+			background: var(--ink);
+			border-radius: 50%;
+		}
+		.toc {
+			padding: 16px 22px;
+			margin: 20px 0;
+			background: #fff;
+			border: 1px solid var(--line);
+			border-radius: 12px;
+		}
+		.toc a {
+			color: var(--blue);
+			text-decoration: none;
+		}
+		.toc ol {
+			margin: 4px 0;
+		}
+		.roles {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 12px;
+			margin: 14px 0;
+		}
+		.role {
+			padding: 12px 14px;
+			font-size: 13px;
+			background: #fff;
+			border: 1.5px solid var(--line);
+			border-radius: 10px;
+		}
+		.role h4 {
+			margin-bottom: 4px;
+			font-size: 14px;
+		}
+		.role .r1 {
+			color: var(--purple);
+		}
+		.role .r2 {
+			color: var(--accent);
+		}
+		.role .r3 {
+			color: var(--blue);
+		}
+		@media (max-width: 720px) {
+			.roles {
+				grid-template-columns: 1fr;
+			}
+		}
+		</style>
+	</head>
+	<body>
+		<div class="wrap">
+			<h1>周六作业实施指南 · Go × ECS Fargate × PR 预览环境</h1>
+			<p class="sub">
+				hl-aigc · us-east-2 · 本指南只负责讲清楚，<strong
+					>所有 AWS 操作由你亲手在控制台完成</strong
+				>。每一步都标了「为什么」和「验收点」，照顺序走即可。
+			</p>
+
+			<div class="toc">
+				<strong>目录</strong>
+				<ol>
+					<li><a href="#s0">作业解读与全景架构图</a></li>
+					<li>
+						<a href="#s1"
+							>阶段一 · Go 服务：连库 + AI 生成个人介绍（本地完成）</a
+						>
+					</li>
+					<li>
+						<a href="#s2"
+							>阶段二 · 上云：ECR + ECS + Fargate + ALB + Cloud Map →
+							Lambda（手动控制台）</a
+						>
+					</li>
+					<li>
+						<a href="#s3"
+							>阶段三 · PR 独立预览环境：Cloudflare + CodeBuild + 三个 IAM 角色</a
+						>
+					</li>
+					<li><a href="#s4">成本账单与删除清单</a></li>
+					<li><a href="#s5">常见坑速查</a></li>
+					<li><a href="#s6">交作业自查清单</a></li>
+				</ol>
+			</div>
+
+			<!-- ============================================================ -->
+			<h2 id="s0"><span class="no">00</span>作业解读与全景架构图</h2>
+
+			<table>
+				<tr>
+					<th>作业原话</th>
+					<th>翻译成工程语言</th>
+					<th>对应阶段</th>
+				</tr>
+				<tr>
+					<td>
+						1. 搭建 GO 的运行环境，使用 GO 链接数据库，把上次 node
+						数据库代码迁移过来一部分，用你的用户名生成一个个人介绍，前端
+					</td>
+					<td>
+						写一个 Go HTTP 服务：用 pgx 连 PostgreSQL，把 Node 侧
+						<code>github_users</code>
+						表的查询迁移成 Go SQL；再调 OpenRouter
+						用查到的资料生成中文个人介绍；前端加一个按钮展示结果
+					</td>
+					<td>阶段一 + 2.9/2.10</td>
+				</tr>
+				<tr>
+					<td>2. 用 ECR+ECS+ALB+FareGate+用 CloudMap 链接 lambda 接口</td>
+					<td>
+						Go 服务打成 Docker 镜像推 <strong>ECR</strong>，跑在
+						<strong>ECS Fargate</strong>（注：Fargate，作业原文的 FareGate
+						是笔误）；挂一个内网
+						<strong>ALB</strong>
+						做健康检查与调试入口；注册到
+						<strong>Cloud Map</strong>
+						私有 DNS，让上周部署的
+						<strong>Lambda</strong>（Hono）通过内网域名调用它
+					</td>
+					<td>阶段二</td>
+				</tr>
+				<tr>
+					<td>
+						3. 构建一个基于 PR 的分支独立开发环境，Cloudflare+CodeBuild+IAM
+						三个角色完成，GO 的版本
+					</td>
+					<td>
+						每开一个 PR 自动拉起一套独立的 Go 环境（自带 postgres
+						sidecar，不碰生产库），域名
+						<code>api-pr-N.preview.你的域名</code>
+						由 Cloudflare 解析；流水线用
+						<strong>CodeBuild</strong>
+						构建镜像，权限拆成
+						<strong>3 个 IAM 角色</strong>（触发 / 构建 / 部署）；PR
+						关闭自动销毁
+					</td>
+					<td>阶段三</td>
+				</tr>
+			</table>
+
+			<p>
+				从两位同学的作业里借鉴了 4 个亮点，已融入方案：<strong>①</strong>
+				构建域与部署域分权（构建不可信 PR 代码的环境里没有任何部署密钥）；<strong
+					>②</strong
+				>
+				buildspec 内联在 CodeBuild 项目里，PR 改不了它；<strong>③</strong>
+				预览环境的数据库用 postgres:16 sidecar 塞进同一个 Fargate
+				任务——跟任务同生共死、天然隔离、零额外成本；<strong>④</strong>
+				除了 PR closed 触发销毁，还有夜间 reconcile 兜底清理孤儿资源。
+			</p>
+
+			<h3>图 A · 生产运行架构（阶段一 + 二完成后的形态）</h3>
+			<div class="diag">
+				<div class="diag-title">
+					PRODUCTION — 浏览器 → Cloudflare / API Gateway → Lambda → Cloud Map →
+					Go on Fargate → Aurora / OpenRouter
+				</div>
+
+				<div class="row">
+					<div class="node">用户浏览器</div>
+					<div class="arr">① 加载页面<b>→</b>静态 HTML/JS</div>
+					<div class="node cf">
+						Cloudflare Pages<small
+							>hl-aigc.pages.dev · 前端静态 · 全球 CDN</small
+						>
+					</div>
+					<div class="arr" style="flex:1"></div>
+				</div>
+				<div class="row">
+					<div class="node">用户浏览器</div>
+					<div class="arr">
+						② POST /trpc/github.generateIntro<b>→</b>跨域 HTTPS + cookie
+					</div>
+					<div class="node aws">
+						API Gateway<small
+							>HTTP API · AWS 托管 · <strong>在 VPC 外</strong></small
+						>
+					</div>
+					<div class="arr">③ 事件投递<b>→</b>AWS 内部通道，不走 IGW</div>
+					<div class="node aws">Lambda（下图 VPC 内）</div>
+				</div>
+
+				<div class="zone z-aws">
+					<div class="zlabel">AWS · us-east-2</div>
+					<div class="zone z-vpc">
+						<div class="zlabel">
+							VPC · hl-aigc-vpc · 10.0.0.0/16（上周 SAM
+							栈已建好，本周在里面加东西）
+						</div>
+
+						<div class="zone z-pub">
+							<div class="zlabel">
+								公有子网 A · 10.0.0.0/24 · AZ-a（既有）　＋　公有子网 B ·
+								10.0.3.0/24 · AZ-b（<strong>本周新建</strong>，给阶段三的预览
+								ALB 用）
+							</div>
+							<div class="row" style="min-width:0">
+								<div class="node">
+									NAT Gateway<small>私有子网唯一出网口</small>
+								</div>
+								<div class="arr"></div>
+								<div class="node">
+									跳板机 t4g.nano<small>SSH 仅你的 IP · 调试入口</small>
+								</div>
+							</div>
+						</div>
+
+						<div class="zone z-priv">
+							<div class="zlabel">
+								私有子网 A/B · 10.0.1.0/24 + 10.0.2.0/24 · 双 AZ · 无公网 IP
+							</div>
+							<div class="row">
+								<div class="node aws">
+									Lambda · Hono<small
+										>tRPC + better-auth（原有业务）<br>新增：generateIntro
+										薄代理转发</small
+									>
+								</div>
+								<div class="arr">
+									④ http://go-api.hl-aigc.local:8080<b>→</b>Cloud Map 私有 DNS
+									解析
+								</div>
+								<div class="node hot">
+									ECS Fargate · Go API<small
+										>:8080 · arm64 · 0.25 vCPU/0.5GB<br>本周主角</small
+									>
+								</div>
+								<div class="arr">⑤ :5432<b>→</b>go-sg → db-sg 放行</div>
+								<div class="node db">
+									Aurora PostgreSQL<small
+										>Serverless v2 · 无公网<br>读 github_users 表</small
+									>
+								</div>
+							</div>
+							<div class="row">
+								<div class="node">
+									内网 ALB<small
+										>internal · 私有子网 A/B<br>TG 健康检查 /healthz ·
+										仅调试观察</small
+									>
+								</div>
+								<div class="arr">健康检查 :8080<b>→</b></div>
+								<div class="node hot">
+									同一个 Go 服务<small>同时注册 ALB 目标组 + Cloud Map</small>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="row">
+						<div class="node hot">Go API</div>
+						<div class="arr">⑥ 私有路由 0.0.0.0/0→NAT<b>→</b>出公网</div>
+						<div class="node ext">openrouter.ai<small>生成个人介绍</small></div>
+						<div class="arr" style="padding-left:30px">
+							Lambda 原有 sync 同样经 NAT<b>→</b>
+						</div>
+						<div class="node ext">api.github.com</div>
+					</div>
+				</div>
+			</div>
+
+			<p><strong>一次「生成个人介绍」请求的完整旅程：</strong></p>
+			<ol class="journey">
+				<li>
+					浏览器从 Cloudflare Pages 加载前端（后端地址构建期写死在 JS 里）。
+				</li>
+				<li>
+					点击「生成介绍」→ tRPC 调用
+					<code>POST /trpc/github.generateIntro</code>
+					打到 API Gateway。
+				</li>
+				<li>
+					API Gateway 把 HTTP 打包成事件投递给 Lambda（不经过你的 VPC
+					网关，这是上周课件的重点）。
+				</li>
+				<li>
+					Lambda 里的新 procedure 不自己干活，作为<strong>薄代理</strong>请求
+					<code
+						>http://go-api.hl-aigc.local:8080/intro/&lt;login&gt;</code
+					>——这个域名只在 VPC 内存在，由 <strong>Cloud Map</strong> 维护的 Route
+					53 私有托管区解析到 Fargate 任务的内网 IP。这就是作业要求的「CloudMap
+					链接 lambda 接口」。
+				</li>
+				<li>
+					Go 服务用迁移过来的 SQL 查 <code>github_users</code> 表（内网直连
+					Aurora :5432，流量不出 VPC）。
+				</li>
+				<li>
+					Go 带着资料调 openrouter.ai 生成介绍——私有子网 → NAT → 公网这条路。
+				</li>
+				<li>结果原路返回：Go → Lambda → API Gateway → 浏览器，前端展示。</li>
+			</ol>
+
+			<h3>图 B · PR 预览环境流水线（阶段三）</h3>
+			<div class="diag">
+				<div class="diag-title">
+					PR PREVIEW — 构建域 / 部署域分权 · 三个 IAM 角色 · PR 关闭即销毁
+				</div>
+
+				<div class="zone z-build">
+					<div class="zlabel">
+						构建域 —— 会执行 PR 里的不可信代码（docker build），所以这里<strong
+							>没有任何部署密钥</strong
+						>
+					</div>
+					<div class="row">
+						<div class="node gh">
+							PR opened /<br>synchronize<small
+								>fork PR 拿不到 OIDC，天然进不来</small
+							>
+						</div>
+						<div class="arr">触发<b>→</b></div>
+						<div class="node gh">
+							GHA · build job<small
+								>扮演 角色①<span class="badge r">只能点火</span><br>start-build
+								+ 轮询结果</small
+							>
+						</div>
+						<div class="arr">StartBuild<b>→</b>source-version = PR SHA</div>
+						<div class="node aws">
+							CodeBuild · hl-aigc-pr-build<small
+								>服务角色 = 角色②<span class="badge r">只能推镜像</span>
+								<br>buildspec 内联 · PR 改不了<br>docker build arm64 → 推 ECR</small
+							>
+						</div>
+						<div class="arr"><b>→</b></div>
+						<div class="node aws">
+							ECR<small>hl-aigc/go-api<br>:pr-N</small>
+						</div>
+					</div>
+				</div>
+
+				<div class="zone z-deploy">
+					<div class="zlabel">
+						部署域 —— 跑的是 main 分支里可信的 workflow 逻辑，密钥集中在这里
+					</div>
+					<div class="row">
+						<div class="node gh">
+							GHA · deploy job<small
+								>扮演 角色③<span class="badge b">部署员</span></small
+							>
+						</div>
+						<div class="arr">注册任务定义<b>→</b></div>
+						<div class="node hot">
+							Task: go-api:pr-N<br>+ postgres:16 sidecar<small
+								>DATABASE_URL=localhost:5432<br>
+								<strong>不碰生产库</strong></small
+							>
+						</div>
+						<div class="arr">create/update<b>→</b></div>
+						<div class="node aws">
+							ECS 服务 pr-N<small>私有子网 · desired 1</small>
+						</div>
+						<div class="arr">TG + Host 规则<b>→</b></div>
+						<div class="node aws">
+							共享预览 ALB<small
+								>internet-facing · 长期存在<br>规则优先级 = PR 号</small
+							>
+						</div>
+						<div class="arr">CNAME 灰云<b>→</b></div>
+						<div class="node cf">
+							Cloudflare DNS<small>api-pr-N.preview.域名</small>
+						</div>
+						<div class="arr"><b>→</b></div>
+						<div class="node gh">PR 评论<small>预览 URL</small></div>
+					</div>
+				</div>
+
+				<div class="zone z-run">
+					<div class="zlabel">运行时访问路径</div>
+					<div class="row">
+						<div class="node">
+							浏览器 / curl<small>https://api-pr-N.preview.域名</small>
+						</div>
+						<div class="arr">仅解析（灰云）<b>→</b></div>
+						<div class="node cf">Cloudflare DNS</div>
+						<div class="arr">HTTPS 443<b>→</b>ACM 通配证书 *.preview.域名</div>
+						<div class="node aws">
+							预览 ALB<small>公有子网 A+B（双 AZ）</small>
+						</div>
+						<div class="arr">Host 匹配<b>→</b>转发 :8080</div>
+						<div class="node hot">
+							pr-N 任务<small>go-api ⇄ localhost:5432 sidecar</small>
+						</div>
+					</div>
+				</div>
+
+				<div class="zone z-clean">
+					<div class="zlabel">销毁与兜底</div>
+					<div class="row">
+						<div class="node gh">PR closed</div>
+						<div class="arr"><b>→</b></div>
+						<div class="node gh">
+							pr-cleanup.yml · 角色③<small
+								>删 服务 → ALB 规则 → TG → DNS → 镜像</small
+							>
+						</div>
+						<div class="arr" style="padding-left:26px">每晚 cron<b>→</b></div>
+						<div class="node gh">
+							夜间 reconcile<small
+								>列出 pr-* 服务 对照 open PR<br>清理孤儿栈 + DNS</small
+							>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- ============================================================ -->
+			<h2 id="s1">
+				<span class="no">01</span>阶段一 · Go 服务：连库 + AI 生成个人介绍
+			</h2>
+			<p class="sub">
+				全部在本地完成。产出：能跑通 <code>/healthz</code>、<code
+					>/profile/:login</code
+				>、<code>/intro/:login</code>
+				的 Go 服务 + Dockerfile。
+			</p>
+
+			<h3><span class="step">1.1</span>安装 Go 环境</h3>
+			<pre><code>brew install go
+go version        # 看到 go1.2x 即可</code></pre>
+			<p class="why">
+				Go 是编译型语言，产物是单个静态二进制——这正是它适合容器/Fargate
+				的原因：最终镜像可以只有十几 MB。
+			</p>
+
+			<h3><span class="step">1.2</span>初始化项目 apps/go-api</h3>
+			<pre><code>mkdir -p apps/go-api &amp;&amp; cd apps/go-api
+go mod init hl-aigc/go-api
+go get github.com/jackc/pgx/v5</code></pre>
+			<p class="why">
+				pgx 是 Go 生态最主流的 PostgreSQL 驱动，等价于 Node 侧 drizzle 底下的
+				<code>pg</code>。整个服务只需要这一个第三方依赖，HTTP 路由用 Go 1.22+
+				标准库的 <code>ServeMux</code> 就够（支持方法 + 路径参数）。
+			</p>
+
+			<h3><span class="step">1.3</span>main.go 完整代码</h3>
+			<p>
+				核心迁移点：Node 侧
+				<code
+					>db.query.githubUser.findFirst( { where: eq(githubUser.login, x) })</code
+				>
+				在 Go 里就是一条参数化 SQL。表名/字段名与
+				<code>packages/db/src/schema/github-user.ts</code>
+				完全一致。
+			</p>
+			<pre><code>// apps/go-api/main.go
+package main
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type Profile struct {
+	Login       string  `json:"login"`
+	Name        *string `json:"name"`
+	Company     *string `json:"company"`
+	Blog        *string `json:"blog"`
+	Location    *string `json:"location"`
+	Bio         *string `json:"bio"`
+	PublicRepos int     `json:"publicRepos"`
+	Followers   int     `json:"followers"`
+	Following   int     `json:"following"`
+}
+
+var pool *pgxpool.Pool
+
+func main() {
+	ctx := context.Background()
+
+	var err error
+	pool, err = pgxpool.New(ctx, os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Fatalf("connect db: %v", err)
+	}
+
+	// 预览环境的 postgres sidecar 是张白纸 → 启动时自动建表 + 塞演示数据
+	if os.Getenv("PREVIEW_SEED") == "1" {
+		if err := ensureSchemaAndSeed(ctx); err != nil {
+			log.Fatalf("seed: %v", err)
+		}
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("ok"))
+	})
+	mux.HandleFunc("GET /profile/{login}", handleProfile)
+	mux.HandleFunc("GET /intro/{login}", handleIntro)
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("go-api listening on :%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, mux)) // 监听 0.0.0.0，容器内必需
+}
+
+// ===== 从 Node (drizzle) 迁移过来的查询 =====
+func queryProfile(ctx context.Context, login string) (*Profile, error) {
+	row := pool.QueryRow(ctx,
+		`SELECT login, name, company, blog, location, bio,
+		        public_repos, followers, following
+		   FROM github_users WHERE login = $1`, login)
+	var p Profile
+	err := row.Scan(&amp;p.Login, &amp;p.Name, &amp;p.Company, &amp;p.Blog, &amp;p.Location,
+		&amp;p.Bio, &amp;p.PublicRepos, &amp;p.Followers, &amp;p.Following)
+	if err == pgx.ErrNoRows {
+		return nil, nil
+	}
+	return &amp;p, err
+}
+
+func handleProfile(w http.ResponseWriter, r *http.Request) {
+	p, err := queryProfile(r.Context(), r.PathValue("login"))
+	if err != nil {
+		httpError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if p == nil {
+		http.Error(w, `{"error":"user not synced"}`, http.StatusNotFound)
+		return
+	}
+	writeJSON(w, p)
+}
+
+func handleIntro(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	defer cancel()
+
+	p, err := queryProfile(ctx, r.PathValue("login"))
+	if err != nil {
+		httpError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if p == nil {
+		http.Error(w, `{"error":"user not synced"}`, http.StatusNotFound)
+		return
+	}
+	intro, err := generateIntro(ctx, p)
+	if err != nil {
+		httpError(w, http.StatusBadGateway, err)
+		return
+	}
+	writeJSON(w, map[string]any{"profile": p, "intro": intro})
+}
+
+// ===== 调 OpenRouter 生成个人介绍 =====
+func generateIntro(ctx context.Context, p *Profile) (string, error) {
+	model := os.Getenv("OPENROUTER_MODEL")
+	if model == "" {
+		model = "openai/gpt-4o-mini"
+	}
+	profileJSON, _ := json.Marshal(p)
+	payload, _ := json.Marshal(map[string]any{
+		"model": model,
+		"messages": []map[string]string{{
+			"role":    "user",
+			"content": "根据这份 GitHub 公开资料，用中文写一段 80 字左右的第三人称个人介绍，突出技术特点，不要编造资料里没有的信息：\n" + string(profileJSON),
+		}},
+	})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		"https://openrouter.ai/api/v1/chat/completions", bytes.NewReader(payload))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+os.Getenv("OPENROUTER_API_KEY"))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("openrouter %d: %s", resp.StatusCode, raw)
+	}
+	var out struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.Unmarshal(raw, &amp;out); err != nil || len(out.Choices) == 0 {
+		return "", fmt.Errorf("unexpected openrouter response: %s", raw)
+	}
+	return out.Choices[0].Message.Content, nil
+}
+
+// ===== 预览/本地环境自举：建表 + 演示数据（只含 Go 用到的列） =====
+func ensureSchemaAndSeed(ctx context.Context) error {
+	_, err := pool.Exec(ctx, `
+CREATE TABLE IF NOT EXISTS github_users (
+  id           text PRIMARY KEY,
+  github_id    text NOT NULL UNIQUE,
+  login        text NOT NULL,
+  name         text, company text, blog text, location text, bio text,
+  public_repos integer NOT NULL DEFAULT 0,
+  followers    integer NOT NULL DEFAULT 0,
+  following    integer NOT NULL DEFAULT 0
+);
+INSERT INTO github_users (id, github_id, login, name, company, location, public_repos, followers, following)
+VALUES ('demo', '583231', 'octocat', 'The Octocat', 'GitHub', 'San Francisco', 8, 9999, 9)
+ON CONFLICT (github_id) DO NOTHING;`)
+	return err
+}
+
+func writeJSON(w http.ResponseWriter, v any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+func httpError(w http.ResponseWriter, code int, err error) {
+	log.Printf("error: %v", err)
+	body, _ := json.Marshal(map[string]string{"error": err.Error()})
+	http.Error(w, string(body), code)
+}</code></pre>
+
+			<h3><span class="step">1.4</span>本地验证</h3>
+			<p>
+				去
+				<a
+					href="https://openrouter.ai"
+					rel="noopener noreferrer"
+					target="_blank"
+					>openrouter.ai</a
+				>
+				注册拿一个 API Key（选便宜模型，几次调用几乎不花钱）。然后：
+			</p>
+			<pre><code># 1. 本地起一个一次性 postgres（和预览环境的 sidecar 同款镜像）
+docker run -d --name pg-local -e POSTGRES_USER=preview -e POSTGRES_PASSWORD=preview \
+  -e POSTGRES_DB=preview -p 5432:5432 postgres:16-alpine
+
+# 2. 起 Go 服务（PREVIEW_SEED=1 会自动建表 + 塞入 octocat 演示数据）
+cd apps/go-api
+DATABASE_URL=postgres://preview:preview@localhost:5432/preview \
+PREVIEW_SEED=1 OPENROUTER_API_KEY=sk-or-xxx go run .
+
+# 3. 另开终端验证
+curl http://localhost:8080/healthz              # → ok
+curl http://localhost:8080/profile/octocat      # → JSON 资料
+curl http://localhost:8080/intro/octocat        # → 资料 + AI 生成的介绍</code></pre>
+			<div class="check">
+				三个 curl 全通过。这一步跑通了「Go 环境 + Go 连库 + 迁移查询 +
+				生成介绍」，作业第 1 条的后端部分完成。
+			</div>
+
+			<h3><span class="step">1.5</span>Dockerfile（多阶段构建）</h3>
+			<pre><code># apps/go-api/Dockerfile
+FROM golang:1.24-alpine AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -o /go-api .
+
+FROM alpine:3.21
+RUN apk add --no-cache ca-certificates   # 没有它，HTTPS 调 openrouter 会证书报错
+COPY --from=build /go-api /go-api
+EXPOSE 8080
+ENTRYPOINT ["/go-api"]</code></pre>
+			<p class="why">
+				第一阶段用完整 Go 工具链编译，第二阶段只带二进制 + CA 证书，最终镜像
+				~15MB。镜像小 = 推 ECR 快、Fargate 冷启动快。
+			</p>
+			<pre
+			><code>docker build -t hl-aigc/go-api:dev apps/go-api    # 本机是 Intel Mac，构建产物为 linux/amd64
+docker run --rm -p 8080:8080 -e DATABASE_URL=postgres://preview:preview@host.docker.internal:5432/preview \
+  -e PREVIEW_SEED=1 -e OPENROUTER_API_KEY=sk-or-xxx hl-aigc/go-api:dev</code></pre>
+			<div class="check">容器里 curl 三连依然通过 → 镜像可用，阶段一收工。</div>
+
+			<!-- ============================================================ -->
+			<h2 id="s2">
+				<span class="no">02</span>阶段二 · 上云：ECR + ECS + Fargate + ALB +
+				Cloud Map → Lambda
+			</h2>
+			<p class="sub">
+				全部<strong>手动在控制台点击</strong>完成（含 2.0
+				重建底座）。区域统一 us-east-2，每一步动手前先看右上角区域。
+			</p>
+
+			<h3><span class="step">2.0</span>重建底座（全手动控制台版，a→f 顺序做）</h3>
+			<p>
+				上周演示完已删栈。底座五块按依赖顺序手动重建：<strong>网络 → 安全组 →
+				Aurora → 跳板机 → Lambda + API Gateway</strong>。顺序不能倒——
+				数据库要放进 VPC 的私有子网，安全组要引用彼此。先决条件：EC2 →
+				密钥对里有 <code>hl-aigc-bastion</code>（没有就新建同名密钥对，.pem 放
+				<code>~/.ssh/</code> 并 <code>chmod 400</code>）。
+			</p>
+
+			<h4>2.0a 网络（VPC 控制台）</h4>
+			<table>
+				<tr><th>#</th><th>操作</th><th>关键参数</th></tr>
+				<tr>
+					<td>1</td>
+					<td>创建 VPC（选「仅 VPC」）</td>
+					<td>名称 <code>hl-aigc-vpc</code>，IPv4 CIDR
+						<code>10.0.0.0/16</code>；创建后 → 操作 → 编辑 VPC 设置 →
+						勾选<strong>启用 DNS 主机名</strong></td>
+				</tr>
+				<tr>
+					<td>2</td>
+					<td>创建子网 ×3（VPC 选 hl-aigc-vpc）</td>
+					<td><code>hl-aigc-public</code> · us-east-2a ·
+						<code>10.0.0.0/24</code>（创建后 → 操作 → 编辑子网设置 →
+						勾<strong>自动分配公有 IPv4</strong>）；<br />
+						<code>hl-aigc-private-a</code> · us-east-2a ·
+						<code>10.0.1.0/24</code>；<br />
+						<code>hl-aigc-private-b</code> · us-east-2b ·
+						<code>10.0.2.0/24</code></td>
+				</tr>
+				<tr>
+					<td>3</td>
+					<td>互联网网关</td>
+					<td>创建 <code>hl-aigc-igw</code> → 操作 →
+						<strong>附加到 VPC</strong> hl-aigc-vpc</td>
+				</tr>
+				<tr>
+					<td>4</td>
+					<td>弹性 IP</td>
+					<td>VPC → 弹性 IP → 分配，标签 Name =
+						<code>hl-aigc-nat-eip</code>（给 NAT 用）</td>
+				</tr>
+				<tr>
+					<td>5</td>
+					<td>NAT 网关</td>
+					<td>名称 <code>hl-aigc-nat</code>，子网选
+						<strong>hl-aigc-public（必须公有）</strong>，连接类型公有，
+						弹性 IP 选上一步的。约 2 分钟变 Available</td>
+				</tr>
+				<tr>
+					<td>6</td>
+					<td>路由表 ×2</td>
+					<td><code>hl-aigc-public-rt</code>：路由加
+						<code>0.0.0.0/0 → hl-aigc-igw</code>，子网关联
+						hl-aigc-public；<br />
+						<code>hl-aigc-private-rt</code>：路由加
+						<code>0.0.0.0/0 → hl-aigc-nat</code>，子网关联
+						private-a + private-b</td>
+				</tr>
+			</table>
+			<p class="why">
+				NAT 网关让私有子网里的 Lambda / Go 容器能「出去」调 OpenRouter、
+				拉镜像，但公网「进不来」——这就是私有子网既安全又能联网的原理。NAT
+				约 $0.045/小时，是底座里最贵的常驻件，作业交完记得按 04 清单删。
+			</p>
+			<div class="check">
+				验收：public 子网的路由表 0.0.0.0/0 指向 igw；两个 private
+				子网的路由表指向 nat。
+			</div>
+
+			<h4>2.0b 安全组 ×3（VPC → 安全组，VPC 都选 hl-aigc-vpc）</h4>
+			<table>
+				<tr><th>名称</th><th>入站</th><th>出站</th></tr>
+				<tr>
+					<td><code>hl-aigc-lambda-sg</code></td>
+					<td>无</td>
+					<td>默认全放</td>
+				</tr>
+				<tr>
+					<td><code>hl-aigc-bastion-sg</code></td>
+					<td>SSH 22 · 来源选「我的 IP」</td>
+					<td>默认全放</td>
+				</tr>
+				<tr>
+					<td><code>hl-aigc-db-sg</code></td>
+					<td>PostgreSQL 5432 · 来源 = <code>hl-aigc-lambda-sg</code>；<br />
+						再加一条 5432 · 来源 = <code>hl-aigc-bastion-sg</code>
+						（2.3 还会加 go-sg 的一条）</td>
+					<td>默认全放</td>
+				</tr>
+			</table>
+			<p class="why">
+				数据库入站的「来源」填的是<strong>安全组</strong>而不是
+				IP——身份化防火墙：谁挂着 lambda-sg 谁就能连库，IP 变了规则不用改。
+			</p>
+
+			<h4>2.0c Aurora Serverless v2（RDS 控制台）</h4>
+			<p>
+				① 先建子网组：RDS → 子网组 → 创建，名称
+				<code>hl-aigc-db-subnets</code>，VPC hl-aigc-vpc，AZ 选
+				us-east-2a + 2b，子网选 <strong>private-a / private-b</strong>
+				（10.0.1 / 10.0.2，别错选成 public）。② 再创建数据库：
+			</p>
+			<table>
+				<tr><th>字段</th><th>值</th></tr>
+				<tr><td>创建方式 / 引擎</td>
+					<td>标准创建 · Aurora (PostgreSQL Compatible) · 版本
+						<strong>16.6</strong></td></tr>
+				<tr><td>模板 / 集群标识符</td>
+					<td>开发/测试 · <code>hl-aigc</code></td></tr>
+				<tr><td>主用户名 / 密码</td>
+					<td><code>hlaigc</code> · 自行管理凭证，密码用
+						<code>apps/server/.env.production.local</code> 里的
+						<code>DEPLOY_DB_MASTER_PASSWORD</code>（纯字母数字，
+						保持不变才能和 DATABASE_URL 拼接一致）</td></tr>
+				<tr><td>实例配置</td>
+					<td>Serverless v2 · 容量 <strong>0.5 – 2 ACU</strong>；
+						不创建 Aurora 副本/读实例</td></tr>
+				<tr><td>连接</td>
+					<td>不连接 EC2 · VPC hl-aigc-vpc · 子网组
+						hl-aigc-db-subnets · 公开访问<strong>否</strong> ·
+						安全组只选 <code>hl-aigc-db-sg</code></td></tr>
+				<tr><td>其他配置（要展开！）</td>
+					<td><strong>初始数据库名称 <code>hlaigc</code>（最容易漏，
+						不填库就不存在）</strong> · 备份保留 1 天 · 删除保护关 ·
+						性能详情/增强监控关（省钱）</td></tr>
+			</table>
+			<div class="check">
+				验收：集群 Available（约 10–15 分钟），抄下 writer 端点
+				<code>hl-aigc.cluster-xxxx.us-east-2.rds.amazonaws.com</code>。
+			</div>
+
+			<h4>2.0d 跳板机（EC2 控制台 → 启动实例）</h4>
+			<table>
+				<tr><th>字段</th><th>值</th></tr>
+				<tr><td>名称 / AMI / 类型</td>
+					<td><code>hl-aigc-bastion</code> · Amazon Linux 2023
+						<strong>64 位 (ARM)</strong> · <code>t4g.nano</code></td></tr>
+				<tr><td>密钥对</td><td><code>hl-aigc-bastion</code></td></tr>
+				<tr><td>网络设置（点编辑）</td>
+					<td>VPC hl-aigc-vpc · 子网 <strong>hl-aigc-public</strong> ·
+						自动分配公有 IP <strong>启用</strong> · 选择现有安全组
+						<code>hl-aigc-bastion-sg</code></td></tr>
+			</table>
+			<div class="check">
+				验收：<code>ssh -i ~/.ssh/hl-aigc-bastion.pem
+				ec2-user@&lt;公网IP&gt;</code> 能登上。
+			</div>
+
+			<h4>2.0e Lambda（Lambda 控制台）</h4>
+			<table>
+				<tr><th>#</th><th>操作</th></tr>
+				<tr><td>1</td>
+					<td>创建函数：从头开始编写 · 名称 <code>hl-aigc-api</code> ·
+						运行时 <strong>Node.js 22.x</strong> · 架构
+						<strong>arm64</strong> · 权限默认（新建执行角色）</td></tr>
+				<tr><td>2</td>
+					<td>代码 → 上传自 .zip → 选仓库根目录的
+						<code>hl-aigc-lambda.zip</code>（已打好）；运行时设置 →
+						编辑 → 处理程序改为 <code>lambda.handler</code></td></tr>
+				<tr><td>3</td>
+					<td>配置 → 常规配置：内存 <strong>512 MB</strong>，超时
+						<strong>30 秒</strong></td></tr>
+				<tr><td>4</td>
+					<td>配置 → 权限 → 点开执行角色跳到 IAM → 附加策略
+						<code>AWSLambdaVPCAccessExecutionRole</code>
+						（不加下一步 VPC 配置会报权限错）</td></tr>
+				<tr><td>5</td>
+					<td>配置 → VPC → 编辑：VPC hl-aigc-vpc · 子网
+						private-a/b · 安全组 <code>hl-aigc-lambda-sg</code>
+						（保存后建 ENI 要等几分钟）</td></tr>
+				<tr><td>6</td>
+					<td>配置 → 环境变量（6 个）：<br />
+						<code>NODE_ENV=production</code><br />
+						<code>DATABASE_URL=postgresql://hlaigc:&lt;密码&gt;@&lt;Aurora
+						writer 端点&gt;:5432/hlaigc</code><br />
+						<code>BETTER_AUTH_SECRET=&lt;DEPLOY_BETTER_AUTH_SECRET&gt;</code><br />
+						<code>BETTER_AUTH_URL=&lt;占位，2.0f 拿到 ApiUrl
+						后回填&gt;</code><br />
+						<code>CORS_ORIGIN=http://localhost:3001</code>（前端上
+						Pages 后改成 Pages 域名）<br />
+						<code>GO_API_URL=http://go-api.hl-aigc.local:8080</code></td></tr>
+			</table>
+
+			<h4>2.0f API Gateway（API Gateway 控制台）</h4>
+			<p>
+				创建 API → <strong>HTTP API</strong> → 构建：添加集成 → Lambda →
+				<code>hl-aigc-api</code>；API 名称 <code>hl-aigc-http</code>；路由配两条：
+				<code>ANY /</code> 和 <code>ANY /{proxy+}</code>，都指向该集成；阶段用默认
+				<code>$default</code>（自动部署）→ 创建。拿到调用 URL 即
+				<strong>ApiUrl</strong>（形如
+				<code>https://xxxx.execute-api.us-east-2.amazonaws.com</code>），
+				回 Lambda 环境变量把 <code>BETTER_AUTH_URL</code> 改成它。
+			</p>
+			<div class="check">
+				验收：<code>curl &lt;ApiUrl&gt;/healthz</code> 返回
+				ok——说明「API GW → Lambda → VPC」整条链路通了。
+			</div>
+
+			<h4>2.0g 收尾（照上周流程）</h4>
+			<pre
+			><code># SSH 隧道跑 drizzle 迁移 → 本地前端连云端 API 登录 → GitHub token 同步一次你自己的账号
+# （github_users 表里要有你的数据，Go 才有东西可查）</code></pre>
+			<p>
+				部署完，到控制台抄下这张表（后面每一步都要用，Name 标签都是 hl-aigc-
+				前缀）：
+			</p>
+			<table>
+				<tr>
+					<th>要抄的值</th>
+					<th>在哪里看</th>
+					<th>记下来</th>
+				</tr>
+				<tr>
+					<td>账号 ID</td>
+					<td>右上角头像</td>
+					<td><code>____________</code></td>
+				</tr>
+				<tr>
+					<td>VPC ID（hl-aigc-vpc）</td>
+					<td>VPC 控制台</td>
+					<td><code>vpc-________</code></td>
+				</tr>
+				<tr>
+					<td>私有子网 A / B ID</td>
+					<td>VPC → 子网（hl-aigc-private-a/b）</td>
+					<td><code>subnet-____ / subnet-____</code></td>
+				</tr>
+				<tr>
+					<td>公有子网 A ID + 公有路由表 ID</td>
+					<td>VPC → 子网 / 路由表</td>
+					<td><code>subnet-____ / rtb-____</code></td>
+				</tr>
+				<tr>
+					<td>lambda-sg / db-sg / bastion-sg ID</td>
+					<td>VPC → 安全组</td>
+					<td><code>sg-____ ×3</code></td>
+				</tr>
+				<tr>
+					<td>Aurora 内网端点</td>
+					<td>RDS → 集群</td>
+					<td><code>____.cluster-____.us-east-2.rds.amazonaws.com</code></td>
+				</tr>
+			</table>
+
+			<h3><span class="step">2.1</span>ECR：建镜像仓库并推送</h3>
+			<p>
+				<strong>控制台：</strong>ECR → 创建存储库 → 名称
+				<code>hl-aigc/go-api</code>，其余默认（私有、AES-256）。
+			</p>
+			<pre><code>ACCOUNT=&lt;账号ID&gt;
+aws ecr get-login-password --region us-east-2 \
+  | docker login --username AWS --password-stdin $ACCOUNT.dkr.ecr.us-east-2.amazonaws.com
+docker tag hl-aigc/go-api:dev $ACCOUNT.dkr.ecr.us-east-2.amazonaws.com/hl-aigc/go-api:prod
+docker push $ACCOUNT.dkr.ecr.us-east-2.amazonaws.com/hl-aigc/go-api:prod</code></pre>
+			<p class="why">
+				Fargate 没有「上传代码」的概念，只认镜像仓库。ECR 登录令牌 12
+				小时有效，过期重跑第一条即可。
+			</p>
+			<div class="check">
+				ECR 控制台里能看到 <code>prod</code> 标签的镜像，架构显示
+				amd64（Intel Mac 本机构建；预览环境的 pr-N 镜像由 CodeBuild ARM
+				机构建，显示 arm64，两者互不影响）。
+			</div>
+
+			<h3>
+				<span class="step">2.2</span>SSM 参数：存数据库连接串和 LLM 网关 Key
+			</h3>
+			<p>
+				<strong>控制台：</strong>Systems Manager → 参数存储 →
+				创建参数（两次，类型都选 <strong>SecureString</strong>，免费）：
+			</p>
+			<table>
+				<tr>
+					<th>名称</th>
+					<th>值</th>
+				</tr>
+				<tr>
+					<td><code>/hl-aigc/database-url</code></td>
+					<td>
+						<code
+							>postgresql://hlaigc:&lt;密码&gt;@&lt;Aurora端点&gt;:5432/hlaigc</code
+						>
+					</td>
+				</tr>
+				<tr>
+					<td><code>/hl-aigc/llm-api-key</code></td>
+					<td><code>sk-…</code>（OpenAI 兼容网关的 key，默认走 OpenRouter 时填 <code>sk-or-…</code>）</td>
+				</tr>
+			</table>
+			<p class="why">
+				密钥不进任务定义明文、不进镜像。任务启动时由 ECS
+				执行角色实时取出注入环境变量——这是「密钥集中在部署域」在运行时的对应做法。
+			</p>
+
+			<h3><span class="step">2.3</span>安全组：为 Go 和 ALB 开门</h3>
+			<p><strong>控制台：</strong>VPC → 安全组 → 创建（都选 hl-aigc-vpc）：</p>
+			<table>
+				<tr>
+					<th>安全组</th>
+					<th>入站规则</th>
+					<th>解读</th>
+				</tr>
+				<tr>
+					<td><code>hl-aigc-go-sg</code>（新建）</td>
+					<td>
+						TCP 8080 ← <code>lambda-sg</code><br>TCP 8080 ←
+						<code>alb-internal-sg</code><br>TCP 8080 ← <code>bastion-sg</code>
+						<br>TCP 8080 ← <code>alb-preview-sg</code>（阶段三建完回来补）
+					</td>
+					<td>
+						Go 只认四个来源：Lambda（业务）、内网
+						ALB（健康检查）、跳板机（调试）、预览 ALB（阶段三）
+					</td>
+				</tr>
+				<tr>
+					<td><code>hl-aigc-alb-internal-sg</code>（新建）</td>
+					<td>TCP 80 ← <code>10.0.0.0/16</code></td>
+					<td>内网 ALB 只服务 VPC 内的调试请求</td>
+				</tr>
+				<tr>
+					<td><code>db-sg</code>（<strong>修改既有</strong>）</td>
+					<td><strong>追加</strong>：TCP 5432 ← <code>go-sg</code></td>
+					<td>
+						数据库白名单从「Lambda +
+						跳板机」扩成三个来源。注意引用的是安全组而非 IP
+					</td>
+				</tr>
+			</table>
+			<div class="warn">
+				db-sg 忘了加 go-sg 这条，Go 连库的表现是<strong
+					>超时</strong
+				>而不是拒绝（安全组静默丢包）——排查连库超时先查这里。
+			</div>
+
+			<h3><span class="step">2.4</span>Cloud Map：创建私有 DNS 命名空间</h3>
+			<p><strong>控制台：</strong>AWS Cloud Map → 创建命名空间：</p>
+			<table>
+				<tr>
+					<th>字段</th>
+					<th>值</th>
+				</tr>
+				<tr>
+					<td>名称</td>
+					<td><code>hl-aigc.local</code></td>
+				</tr>
+				<tr>
+					<td>实例发现</td>
+					<td>API 调用和 VPC 内 DNS 查询</td>
+				</tr>
+				<tr>
+					<td>VPC</td>
+					<td>hl-aigc-vpc</td>
+				</tr>
+			</table>
+			<p class="why">
+				背后其实是创建了一个关联到你 VPC 的 Route 53 私有托管区。之后 ECS
+				服务把每个任务的 IP 自动注册成 <code>go-api.hl-aigc.local</code> 的 A
+				记录，任务换 IP 时记录自动更新——Lambda 永远用同一个域名就能找到
+				Go，这就是「服务发现」。
+			</p>
+
+			<h3><span class="step">2.5</span>ECS：集群 + 任务定义</h3>
+			<p>
+				<strong>控制台：</strong>ECS → 集群 → 创建集群：名称
+				<code>hl-aigc</code>，基础设施只勾 Fargate。
+			</p>
+			<p>
+				先手动建日志组：CloudWatch → 日志组 → 创建
+				<code>/ecs/go-api</code>（保留 1 天即可）。
+			</p>
+			<p>然后 ECS → 任务定义 → 创建新任务定义：</p>
+			<table>
+				<tr>
+					<th>字段</th>
+					<th>值</th>
+					<th>说明</th>
+				</tr>
+				<tr>
+					<td>系列名称</td>
+					<td><code>go-api</code></td>
+					<td></td>
+				</tr>
+				<tr>
+					<td>启动类型 / 架构</td>
+					<td>Fargate / <strong>X86_64</strong>, Linux</td>
+					<td>
+						必须和镜像架构一致，否则任务秒退——本机是 Intel Mac，2.1
+						推上去的镜像是 amd64，所以这里选 X86_64（不是 ARM64）
+					</td>
+				</tr>
+				<tr>
+					<td>CPU / 内存</td>
+					<td>0.25 vCPU / 0.5 GB</td>
+					<td>最小档，够用</td>
+				</tr>
+				<tr>
+					<td>任务执行角色</td>
+					<td>新建 ecsTaskExecutionRole</td>
+					<td>
+						创建后去 IAM 给它<strong>附加内联策略</strong>：允许
+						<code>ssm:GetParameters</code>
+						于
+						<code
+							>arn:aws:ssm:us-east-2:&lt;账号ID&gt;:parameter/hl-aigc/*</code
+						>，否则读不到 2.2 的参数
+					</td>
+				</tr>
+				<tr>
+					<td>容器名称 / 镜像</td>
+					<td>
+						<code>go-api</code>
+						/
+						<code
+							>&lt;账号ID&gt;.dkr.ecr.us-east-2.amazonaws.com/hl-aigc/go-api:prod</code
+						>
+					</td>
+					<td></td>
+				</tr>
+				<tr>
+					<td>容器端口</td>
+					<td>8080</td>
+					<td></td>
+				</tr>
+				<tr>
+					<td>环境变量（ValueFrom）</td>
+					<td>
+						<code>DATABASE_URL</code>
+						← <code>arn:…:parameter/hl-aigc/database-url</code><br>
+						<code>LLM_API_KEY</code>
+						← <code>arn:…:parameter/hl-aigc/llm-api-key</code>
+					</td>
+					<td>类型选 ValueFrom（从 SSM 注入）；另加两个普通 Value 环境变量：<code>LLM_BASE_URL</code>=<code>https://api.sfaigc.com/v1</code>、<code>LLM_MODEL</code>=<code>gpt-5.5</code>（Go 代码默认 OpenRouter，可经这两个变量切到任何 OpenAI 兼容网关）</td>
+				</tr>
+				<tr>
+					<td>日志</td>
+					<td>awslogs → 日志组 <code>/ecs/go-api</code></td>
+					<td>Go 的 log 输出都到这里，排错唯一入口</td>
+				</tr>
+			</table>
+
+			<h3><span class="step">2.6</span>内网 ALB + 目标组</h3>
+			<p>
+				<strong>控制台：</strong>EC2 → 负载均衡器 → 创建 Application Load
+				Balancer：
+			</p>
+			<table>
+				<tr>
+					<th>字段</th>
+					<th>值</th>
+					<th>说明</th>
+				</tr>
+				<tr>
+					<td>名称 / 方案</td>
+					<td>
+						<code>hl-aigc-alb-internal</code>
+						/ <strong>内部（internal）</strong>
+					</td>
+					<td>没有公网地址，只在 VPC 里可达</td>
+				</tr>
+				<tr>
+					<td>网络映射</td>
+					<td>hl-aigc-vpc → 私有子网 A + 私有子网 B</td>
+					<td>ALB 硬性要求 ≥2 个不同 AZ 的子网，私有 A/B 正好</td>
+				</tr>
+				<tr>
+					<td>安全组</td>
+					<td><code>hl-aigc-alb-internal-sg</code></td>
+					<td></td>
+				</tr>
+				<tr>
+					<td>监听器</td>
+					<td>HTTP :80 → 转发到下面新建的目标组</td>
+					<td></td>
+				</tr>
+				<tr>
+					<td>目标组</td>
+					<td>
+						名称 <code>hl-aigc-tg-go</code>，目标类型 <strong>IP</strong>，HTTP
+						:8080，健康检查路径 <code>/healthz</code>
+					</td>
+					<td>
+						Fargate 任务没有实例 ID，必须选 IP 类型；先不注册目标，创建服务时
+						ECS 自动挂
+					</td>
+				</tr>
+			</table>
+			<p class="why">
+				作业链路里 Lambda 走 Cloud Map 直连 Go，这个内网 ALB 的价值是：给 Go
+				提供持续健康检查（不健康自动换任务）+ 给你一个稳定的 VPC
+				内调试入口。生产规模上量后应把调用路径整体切到
+				ALB（有负载均衡和摘除能力），Cloud Map 直连在任务重启瞬间有 DNS TTL
+				窗口——这是两位同学架构图里没讲透的取舍，答辩可以讲。
+			</p>
+
+			<h3>
+				<span class="step">2.7</span>创建 ECS 服务（同时挂 ALB + Cloud Map）
+			</h3>
+			<p><strong>控制台：</strong>ECS → 集群 hl-aigc → 服务 → 创建：</p>
+			<table>
+				<tr>
+					<th>字段</th>
+					<th>值</th>
+				</tr>
+				<tr>
+					<td>任务定义 / 服务名称</td>
+					<td>
+						<code>go-api</code>
+						最新修订版 / <code>go-api</code>，期望任务数 1
+					</td>
+				</tr>
+				<tr>
+					<td>网络</td>
+					<td>
+						私有子网 A + B，安全组 <code>hl-aigc-go-sg</code>，<strong
+							>公有 IP：关闭</strong
+						>
+					</td>
+				</tr>
+				<tr>
+					<td>负载均衡</td>
+					<td>
+						ALB → hl-aigc-alb-internal → 容器 go-api:8080 → 既有目标组
+						<code>hl-aigc-tg-go</code>
+					</td>
+				</tr>
+				<tr>
+					<td>服务发现（Service discovery）</td>
+					<td>
+						开启 → 命名空间 <code>hl-aigc.local</code> → 服务名
+						<code>go-api</code>
+						→ <strong>A 记录，TTL 10 秒</strong>
+					</td>
+				</tr>
+			</table>
+			<p class="why">
+				一个 ECS 服务可以同时注册 ALB 目标组和 Cloud
+				Map——这一步把作业要求的两个组件一次挂齐。拉镜像走的是私有子网 → NAT
+				这条路，所以 NAT 不能删。
+			</p>
+			<div class="check">
+				服务事件里出现
+				<em>service go-api has reached a steady state</em>；目标组显示
+				healthy；Route 53 私有托管区里能看到
+				<code>go-api.hl-aigc.local</code>
+				的 A 记录。
+			</div>
+
+			<h3><span class="step">2.8</span>从跳板机验证两条内网入口</h3>
+			<pre><code>ssh -i ~/.ssh/hl-aigc-bastion.pem ec2-user@&lt;跳板机IP&gt;
+
+# 入口一：Cloud Map 域名（Lambda 将来走的路）
+curl http://go-api.hl-aigc.local:8080/healthz
+curl http://go-api.hl-aigc.local:8080/profile/&lt;你的GitHub用户名&gt;
+
+# 入口二：内网 ALB（调试入口，DNS 名在 ALB 详情页抄）
+curl http://internal-hl-aigc-alb-internal-xxxx.us-east-2.elb.amazonaws.com/healthz</code></pre>
+			<div class="check">
+				两条都返回正常 → ECR+ECS+Fargate+ALB+CloudMap 全链路就位，且
+				<code>/profile</code>
+				查到的是 Aurora 里你真实同步过的数据。
+			</div>
+
+			<h3>
+				<span class="step">2.9</span>Lambda 接入：新增 generateIntro
+				薄代理（写代码）
+			</h3>
+			<p>三处小改动，全是仓库里的 TypeScript：</p>
+			<pre><code>// ① packages/env/src/server.ts —— server schema 里加一行
+GO_API_URL: z.string().url().default("http://localhost:8080"),
+
+// ② packages/api/src/routers/github.ts —— githubRouter 里加一个 procedure
+generateIntro: publicProcedure
+	.input(z.object({ login: z.string().min(1) }))
+	.mutation(async ({ input }) =&gt; {
+		const res = await fetch(
+			`${env.GO_API_URL}/intro/${encodeURIComponent(input.login)}`,
+			{ signal: AbortSignal.timeout(25_000) }
+		);
+		if (!res.ok) {
+			throw new TRPCError({ code: "BAD_GATEWAY", message: `go-api ${res.status}` });
+		}
+		return (await res.json()) as { profile: unknown; intro: string };
+	}),
+
+// ③ template.yaml —— Lambda 的 Environment.Variables 里加一行
+GO_API_URL: http://go-api.hl-aigc.local:8080</code></pre>
+			<p class="why">
+				Lambda 在私有子网里，VPC 的 DNS 解析器天然认识 Cloud Map
+				的私有域名；lambda-sg 出站全放 + go-sg 入站放行
+				lambda-sg，网络层已通。Lambda
+				在这条链路上是「薄代理」：校验入参、转发、翻译错误，不做业务。
+			</p>
+			<pre><code>pnpm fix &amp;&amp; pnpm check-types   # 项目质量门禁
+sam build &amp;&amp; sam deploy         # 重新部署 Lambda</code></pre>
+
+			<h3>
+				<span class="step">2.10</span>前端：加「生成个人介绍」按钮（写代码）
+			</h3>
+			<p>
+				在 GitHub 同步页（<code>apps/web/src/routes/</code>
+				下现有页面）加一小块，风格照抄现有 mutation 用法：
+			</p>
+			<pre
+			><code>const generateIntro = useMutation(trpc.github.generateIntro.mutationOptions());
+
+&lt;Button
+	disabled={generateIntro.isPending}
+	onClick={() =&gt; generateIntro.mutate({ login })}
+&gt;
+	{generateIntro.isPending ? "生成中…" : "AI 生成个人介绍"}
+&lt;/Button&gt;
+{generateIntro.data ? &lt;p&gt;{generateIntro.data.intro}&lt;/p&gt; : null}</code></pre>
+			<pre><code>VITE_SERVER_URL=&lt;ApiUrl&gt; pnpm --filter web build
+npx wrangler pages deploy apps/web/dist --project-name hl-aigc --branch main</code></pre>
+			<div class="check">
+				打开 hl-aigc.pages.dev → 点按钮 → 看到 AI 生成的中文介绍。<strong
+					>作业第 1、2 条完成</strong
+				>：浏览器 → APIGW → Lambda → Cloud Map → Go(Fargate) → Aurora +
+				OpenRouter 全链路跑通。
+			</div>
+
+			<!-- ============================================================ -->
+			<h2 id="s3">
+				<span class="no">03</span>阶段三 · PR 独立预览环境：Cloudflare +
+				CodeBuild + 三个 IAM 角色
+			</h2>
+			<p class="sub">
+				先理解分权模型 → 手动准备基础设施 → 用一个测试 PR 手动走一遍全流程 →
+				最后才写 workflow 自动化。
+			</p>
+
+			<h3><span class="step">3.1</span>为什么要三个 IAM 角色：信任边界</h3>
+			<p>
+				核心矛盾：<strong>PR 里的代码是不可信的</strong>（docker build 会执行 PR
+				改过的 Dockerfile
+				和源码），但部署又需要高权限。解法是把权限切成三份，让「碰不可信代码的环节」权限最小：
+			</p>
+			<div class="roles">
+				<div class="role">
+					<h4 class="r1">角色① hl-aigc-pr-trigger</h4>
+					<strong>谁扮演：</strong>GitHub Actions（OIDC）<br>
+					<strong>只能干：</strong>StartBuild / BatchGetBuilds 指定项目<br>
+					<strong>比喻：</strong>点火钥匙——只能发动，摸不到别的
+				</div>
+				<div class="role">
+					<h4 class="r2">角色② hl-aigc-codebuild-build</h4>
+					<strong>谁扮演：</strong>CodeBuild 服务<br>
+					<strong>只能干：</strong>推镜像进指定 ECR 仓库 + 写日志<br>
+					<strong>比喻：</strong>只会造镜像的工人——它执行不可信代码，所以就算被
+					PR 恶意代码劫持，最多也只能推个镜像
+				</div>
+				<div class="role">
+					<h4 class="r3">角色③ hl-aigc-preview-deploy</h4>
+					<strong>谁扮演：</strong>GitHub Actions（OIDC）的 deploy job<br>
+					<strong>只能干：</strong>ECS/ALB 规则/目标组 增删改 +
+					PassRole（仅限任务执行角色）<br>
+					<strong>比喻：</strong>持钥匙的部署员——它只执行 main 分支里可信的
+					workflow 逻辑
+				</div>
+			</div>
+			<p>
+				再加两道天然防线：<strong>fork PR</strong>
+				在 <code>pull_request</code> 事件下拿不到 OIDC 令牌，连角色①都扮演不了；<strong
+					>buildspec 内联</strong
+				>在 CodeBuild 项目配置里，PR 改仓库里任何文件都影响不了构建脚本本身。
+			</p>
+			<div class="note">
+				预览任务里注入了 OPENROUTER_API_KEY（低敏、限额）。因为 fork PR
+				已被排除，能开 PR 的都是同仓协作者，可以接受；若将来向 fork
+				开放预览，这类密钥必须从预览任务里拿掉。
+			</div>
+
+			<h3>
+				<span class="step">3.2</span>前置准备：域名 + 公有子网 B + ACM 通配证书
+			</h3>
+			<p>
+				<strong>(a) 域名：</strong>准备一个托管在 Cloudflare
+				的域名（没有就注册个 .xyz，一年十来块）。在 Cloudflare
+				面板拿两样东西：域名概览页右下角的 <strong>Zone ID</strong>；My Profile
+				→ API Tokens → Create Token → 模板「Edit zone DNS」→ 限定该 zone → 生成
+				<strong>API Token</strong>。
+			</p>
+			<p><strong>(b) 公有子网 B（控制台，VPC → 子网 → 创建）：</strong></p>
+			<table>
+				<tr>
+					<th>字段</th>
+					<th>值</th>
+				</tr>
+				<tr>
+					<td>VPC / 名称</td>
+					<td>hl-aigc-vpc / <code>hl-aigc-public-b</code></td>
+				</tr>
+				<tr>
+					<td>可用区 / CIDR</td>
+					<td>
+						us-east-2<strong>b</strong>（和既有公有子网错开）/
+						<code>10.0.3.0/24</code>
+					</td>
+				</tr>
+				<tr>
+					<td>创建后</td>
+					<td>
+						子网 → 路由表 → 编辑关联 → 选<strong>公有路由表</strong>（有
+						0.0.0.0/0 → IGW 那张）
+					</td>
+				</tr>
+			</table>
+			<p class="why">
+				internet-facing ALB 硬性要求两个不同 AZ 的<strong
+					>公有</strong
+				>子网，上周的模板只建了一个——这是很多人会卡住的地方。
+			</p>
+			<p>
+				<strong
+					>(c) ACM 通配证书（控制台，Certificate Manager，注意区域必须是
+					us-east-2）：</strong
+				>请求公有证书 → 域名填 <code>*.preview.&lt;你的域名&gt;</code> → DNS
+				验证 → 把给出的 CNAME 验证记录添加到 Cloudflare（<strong
+					>灰云/仅 DNS</strong
+				>）→ 几分钟后状态变「已颁发」。
+			</p>
+			<div class="warn">
+				预览域名是二级子域（api-pr-1.<strong>preview.</strong>域名）。Cloudflare
+				免费版的通用证书只覆盖一级子域，所以预览记录必须用<strong
+					>灰云（仅 DNS）</strong
+				>，TLS 由 ALB 上的这张 ACM 证书终结——这也是两位同学图里 “CNAME ·
+				DNS-only” 的原因。
+			</div>
+
+			<h3>
+				<span class="step">3.3</span>共享预览 ALB（长期存在，所有 PR 共用）
+			</h3>
+			<p>
+				<strong>控制台：</strong>先建安全组
+				<code>hl-aigc-alb-preview-sg</code>（入站 TCP 443 ← 0.0.0.0/0）；<strong
+					>回到 2.3 给 go-sg 补上「8080 ← alb-preview-sg」那条</strong
+				>。然后创建 ALB：
+			</p>
+			<table>
+				<tr>
+					<th>字段</th>
+					<th>值</th>
+					<th>说明</th>
+				</tr>
+				<tr>
+					<td>名称 / 方案</td>
+					<td>
+						<code>hl-aigc-alb-preview</code>
+						/ <strong>面向 Internet</strong>
+					</td>
+					<td></td>
+				</tr>
+				<tr>
+					<td>网络映射</td>
+					<td>公有子网 A + 公有子网 B</td>
+					<td>双 AZ，刚建的 B 派上用场</td>
+				</tr>
+				<tr>
+					<td>监听器</td>
+					<td>HTTPS :443，证书选 3.2(c) 的 <code>*.preview.…</code></td>
+					<td>TLS 在这里终结</td>
+				</tr>
+				<tr>
+					<td>默认操作</td>
+					<td>返回固定响应 404</td>
+					<td>
+						没匹配任何 PR 规则的请求一律 404，每个 PR 的入口靠 Host 规则挂上来
+					</td>
+				</tr>
+			</table>
+			<p class="why">
+				一个 ALB $16+/月，绝不能每个 PR 建一个。共享 ALB + Host 头路由（<code
+					>api-pr-1.…</code
+				>
+				→ pr-1 目标组，<code>api-pr-2.…</code>
+				→ pr-2 目标组）是预览环境的标准省钱姿势，规则优先级直接用 PR
+				号保证不冲突。抄下 ALB 的 <strong>DNS 名</strong>和监听器的
+				<strong>Listener ARN</strong>。
+			</p>
+
+			<h3><span class="step">3.4</span>手动创建 OIDC 身份提供商 + 三个角色</h3>
+			<p>
+				<strong>(a) IAM → 身份提供商 → 添加：</strong>OpenID Connect，URL
+				<code>https://token.actions.githubusercontent.com</code>，受众
+				<code>sts.amazonaws.com</code>（上周删过，重建）。
+			</p>
+			<p><strong>(b) 角色①</strong>：IAM → 角色 → 创建 → 自定义信任策略：</p>
+			<pre><code>{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": { "Federated": "arn:aws:iam::&lt;账号ID&gt;:oidc-provider/token.actions.githubusercontent.com" },
+    "Action": "sts:AssumeRoleWithWebIdentity",
+    "Condition": {
+      "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com" },
+      "StringLike":   { "token.actions.githubusercontent.com:sub": "repo:kashen336699-ks/hl-aigc:pull_request" }
+    }
+  }]
+}</code></pre>
+			<p>权限（内联策略）：</p>
+			<pre><code>{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["codebuild:StartBuild", "codebuild:BatchGetBuilds"],
+    "Resource": "arn:aws:codebuild:us-east-2:&lt;账号ID&gt;:project/hl-aigc-pr-build"
+  }]
+}</code></pre>
+			<p class="why">
+				信任条件里的 <code>sub … :pull_request</code> 表示：只有本仓库
+				pull_request 事件触发的 workflow 才能扮演它。这就是「同仓 guard」的 IAM
+				写法。
+			</p>
+			<p>
+				<strong>(c) 角色②</strong>：创建角色 → 可信实体选 AWS 服务 →
+				CodeBuild。权限：
+			</p>
+			<pre><code>{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Effect": "Allow", "Action": "ecr:GetAuthorizationToken", "Resource": "*" },
+    { "Effect": "Allow",
+      "Action": ["ecr:BatchCheckLayerAvailability", "ecr:InitiateLayerUpload",
+                 "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage"],
+      "Resource": "arn:aws:ecr:us-east-2:&lt;账号ID&gt;:repository/hl-aigc/go-api" },
+    { "Effect": "Allow",
+      "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+      "Resource": "arn:aws:logs:us-east-2:&lt;账号ID&gt;:log-group:/aws/codebuild/*" }
+  ]
+}</code></pre>
+			<p>
+				<strong>(d) 角色③</strong>：信任策略与角色①完全相同（也是 GHA OIDC +
+				同一个 sub 条件）。权限：
+			</p>
+			<pre><code>{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Sid": "Ecs", "Effect": "Allow",
+      "Action": ["ecs:RegisterTaskDefinition", "ecs:DescribeTaskDefinition", "ecs:DescribeServices",
+                 "ecs:CreateService", "ecs:UpdateService", "ecs:DeleteService", "ecs:ListServices", "ecs:TagResource"],
+      "Resource": "*" },
+    { "Sid": "Alb", "Effect": "Allow",
+      "Action": ["elasticloadbalancing:CreateTargetGroup", "elasticloadbalancing:DeleteTargetGroup",
+                 "elasticloadbalancing:CreateRule", "elasticloadbalancing:DeleteRule",
+                 "elasticloadbalancing:ModifyRule", "elasticloadbalancing:Describe*",
+                 "elasticloadbalancing:AddTags"],
+      "Resource": "*" },
+    { "Sid": "PassExecRoleOnly", "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::&lt;账号ID&gt;:role/ecsTaskExecutionRole",
+      "Condition": { "StringEquals": { "iam:PassedToService": "ecs-tasks.amazonaws.com" } } },
+    { "Sid": "PrImageCleanup", "Effect": "Allow",
+      "Action": ["ecr:ListImages", "ecr:BatchDeleteImage"],
+      "Resource": "arn:aws:ecr:us-east-2:&lt;账号ID&gt;:repository/hl-aigc/go-api" }
+  ]
+}</code></pre>
+			<p class="why">
+				PassRole 那条限死了角色③只能把
+				<code>ecsTaskExecutionRole</code>
+				交给任务——即使 workflow
+				被改坏，也无法让任务拿到更高权限的角色。作业粒度下 ECS/ALB 的 Resource
+				用 *，答辩时说明生产应再按 ARN 收紧。
+			</p>
+
+			<h3><span class="step">3.5</span>CodeBuild 项目（buildspec 内联）</h3>
+			<p>
+				先建日志组
+				<code>/ecs/go-api-preview</code>（CloudWatch，预览任务日志用）。<strong
+					>控制台：</strong
+				>CodeBuild → 创建项目：
+			</p>
+			<table>
+				<tr>
+					<th>字段</th>
+					<th>值</th>
+					<th>说明</th>
+				</tr>
+				<tr>
+					<td>项目名称</td>
+					<td><code>hl-aigc-pr-build</code></td>
+					<td></td>
+				</tr>
+				<tr>
+					<td>源</td>
+					<td>GitHub → 公共存储库 → 仓库 URL</td>
+					<td>公共仓库无需授权连接</td>
+				</tr>
+				<tr>
+					<td>环境</td>
+					<td>
+						Amazon Linux · <strong>ARM64</strong> · aarch64-standard:3.0 镜像 ·
+						<strong>勾选特权模式</strong>
+					</td>
+					<td>ARM 机原生构建 arm64 镜像；特权模式是跑 docker 的前提</td>
+				</tr>
+				<tr>
+					<td>服务角色</td>
+					<td>选既有 <code>hl-aigc-codebuild-build</code>（角色②）</td>
+					<td>不要让它新建角色</td>
+				</tr>
+				<tr>
+					<td>环境变量</td>
+					<td>
+						<code
+							>ECR_REGISTRY=&lt;账号ID&gt;.dkr.ecr.us-east-2.amazonaws.com</code
+						>
+					</td>
+					<td><code>IMAGE_TAG</code> 每次由 start-build 传入覆盖</td>
+				</tr>
+				<tr>
+					<td>Buildspec</td>
+					<td>选「<strong>插入构建命令</strong>」，粘贴下面内容</td>
+					<td>内联 = PR 改不了构建脚本</td>
+				</tr>
+			</table>
+			<pre><code>version: 0.2
+phases:
+  pre_build:
+    commands:
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+  build:
+    commands:
+      - docker build -t $ECR_REGISTRY/hl-aigc/go-api:$IMAGE_TAG apps/go-api
+      - docker push $ECR_REGISTRY/hl-aigc/go-api:$IMAGE_TAG</code></pre>
+
+			<h3><span class="step">3.6</span>先手动走一遍：用一个真实测试 PR</h3>
+			<p>
+				这一步是本次作业「手动学习」的核心：自动化之前，亲手把一个 PR
+				环境从生到死点一遍，后面 workflow 的每一行你都能对上号。开一个测试
+				PR（比如改 README，记住 PR 号，下面以 <strong>N</strong> 代称）：
+			</p>
+			<ol>
+				<li>
+					<strong>构建</strong>：CodeBuild → hl-aigc-pr-build →
+					开始构建（覆盖）→ 源版本填 <code>pr/N</code>，环境变量覆盖
+					<code>IMAGE_TAG=pr-N</code>
+					→ 看日志跑绿 → ECR 出现
+					<code>pr-N</code>
+					镜像。
+				</li>
+				<li>
+					<strong>任务定义</strong>：ECS → 任务定义 → 创建
+					<code>go-api-pr-N</code>：Fargate/ARM64，0.25 vCPU /
+					<strong>1 GB</strong>（两个容器），执行角色 ecsTaskExecutionRole。<strong
+						>容器一</strong
+					> <code>postgres</code>：镜像
+					<code
+						>public.ecr.aws/docker/library/postgres:16-alpine</code
+					>，环境变量 POSTGRES_USER/PASSWORD/DB 都填
+					<code>preview</code>，健康检查命令
+					<code>CMD-SHELL, pg_isready -U preview</code>；<strong>容器二</strong>
+					<code>go-api</code>：镜像 <code>…/hl-aigc/go-api:pr-N</code>，端口
+					8080，启动依赖于 postgres <strong>HEALTHY</strong>，环境变量
+					<code
+						>DATABASE_URL=postgres://preview:preview@localhost:5432/preview</code
+					>、<code>PREVIEW_SEED=1</code>，OPENROUTER_API_KEY 用 ValueFrom 指
+					SSM，日志组 <code>/ecs/go-api-preview</code>。
+				</li>
+				<li>
+					<strong>目标组</strong>：EC2 → 目标组 → 创建 <code>pr-N-go</code>（IP
+					类型，HTTP 8080，健康检查 /healthz，VPC 选 hl-aigc-vpc）。
+				</li>
+				<li>
+					<strong>ALB 规则</strong>：预览 ALB → 监听器 443 → 添加规则：条件 Host
+					= <code>api-pr-N.preview.&lt;域名&gt;</code>，动作转发到
+					<code>pr-N-go</code>，优先级 <code>N</code>。
+				</li>
+				<li>
+					<strong>服务</strong>：集群 hl-aigc → 创建服务
+					<code>pr-N</code>：任务定义 go-api-pr-N，期望 1，私有子网 A+B，安全组
+					go-sg，不分配公网 IP，负载均衡挂 <code>pr-N-go</code>（容器
+					go-api:8080）。预览任务不需要注册 Cloud Map。
+				</li>
+				<li>
+					<strong>DNS</strong>：Cloudflare → DNS → 添加记录：CNAME，名称
+					<code>api-pr-N.preview</code>，目标 = 预览 ALB 的 DNS 名，<strong
+						>代理状态关闭（灰云）</strong
+					>。
+				</li>
+				<li>
+					<strong>验证</strong>：<code
+						>curl https://api-pr-N.preview.&lt;域名&gt;/healthz</code
+					>
+					→ ok；<code>/intro/octocat</code>
+					→ sidecar 种子数据 + AI 介绍。<strong
+						>这套环境从镜像到数据库和生产完全隔离。</strong
+					>
+				</li>
+				<li>
+					<strong>手动销毁</strong>（顺序重要）：删服务（强制）→ 删监听器规则 →
+					删目标组 → 删 Cloudflare 记录 → 删 ECR 的 pr-N 镜像标签 → 关闭测试
+					PR。
+				</li>
+			</ol>
+			<div class="check">
+				手动全流程走通一次。你现在完全清楚 workflow 自动化要替你做的每一件事。
+			</div>
+
+			<h3>
+				<span class="step">3.7</span>自动化：仓库变量 + 三个 workflow（写代码）
+			</h3>
+			<p>
+				<strong>(a) 先把手动阶段抄下的值录入 GitHub 仓库</strong>（Settings →
+				Secrets and variables → Actions）：
+			</p>
+			<table>
+				<tr>
+					<th>类型</th>
+					<th>名称</th>
+					<th>值</th>
+				</tr>
+				<tr>
+					<td>Variable</td>
+					<td><code>AWS_ACCOUNT_ID</code></td>
+					<td>账号 ID</td>
+				</tr>
+				<tr>
+					<td>Variable</td>
+					<td><code>PREVIEW_SUBNETS</code></td>
+					<td><code>subnet-私有A,subnet-私有B</code></td>
+				</tr>
+				<tr>
+					<td>Variable</td>
+					<td><code>PREVIEW_SG</code> / <code>PREVIEW_VPC_ID</code></td>
+					<td>go-sg ID / VPC ID</td>
+				</tr>
+				<tr>
+					<td>Variable</td>
+					<td>
+						<code>PREVIEW_LISTENER_ARN</code>
+						/ <code>PREVIEW_ALB_DNS</code>
+					</td>
+					<td>3.3 抄的两个值</td>
+				</tr>
+				<tr>
+					<td>Variable</td>
+					<td><code>PREVIEW_DOMAIN</code> / <code>CF_ZONE_ID</code></td>
+					<td><code>preview.&lt;你的域名&gt;</code> / Cloudflare Zone ID</td>
+				</tr>
+				<tr>
+					<td>Secret</td>
+					<td><code>CLOUDFLARE_API_TOKEN</code></td>
+					<td>3.2(a) 的 DNS 编辑 token</td>
+				</tr>
+			</table>
+
+			<p>
+				<strong>(b) 任务定义模板</strong>
+				<code>.aws/preview-taskdef.json</code>（就是 3.6 第 2 步手动配置的 JSON
+				化）：
+			</p>
+			<pre><code>{
+	"family": "go-api-pr-__PR__",
+	"requiresCompatibilities": ["FARGATE"],
+	"networkMode": "awsvpc",
+	"cpu": "256",
+	"memory": "1024",
+	"runtimePlatform": { "cpuArchitecture": "ARM64", "operatingSystemFamily": "LINUX" },
+	"executionRoleArn": "arn:aws:iam::__ACCOUNT__:role/ecsTaskExecutionRole",
+	"containerDefinitions": [
+		{
+			"name": "postgres",
+			"image": "public.ecr.aws/docker/library/postgres:16-alpine",
+			"essential": true,
+			"environment": [
+				{ "name": "POSTGRES_USER", "value": "preview" },
+				{ "name": "POSTGRES_PASSWORD", "value": "preview" },
+				{ "name": "POSTGRES_DB", "value": "preview" }
+			],
+			"healthCheck": {
+				"command": ["CMD-SHELL", "pg_isready -U preview"],
+				"interval": 5, "timeout": 3, "retries": 10, "startPeriod": 10
+			},
+			"logConfiguration": { "logDriver": "awslogs", "options": {
+				"awslogs-group": "/ecs/go-api-preview", "awslogs-region": "us-east-2", "awslogs-stream-prefix": "pg" } }
+		},
+		{
+			"name": "go-api",
+			"image": "__IMAGE__",
+			"essential": true,
+			"portMappings": [{ "containerPort": 8080 }],
+			"dependsOn": [{ "containerName": "postgres", "condition": "HEALTHY" }],
+			"environment": [
+				{ "name": "DATABASE_URL", "value": "postgres://preview:preview@localhost:5432/preview" },
+				{ "name": "PREVIEW_SEED", "value": "1" },
+				{ "name": "LLM_BASE_URL", "value": "https://api.sfaigc.com/v1" },
+				{ "name": "LLM_MODEL", "value": "gpt-5.5" }
+			],
+			"secrets": [
+				{ "name": "LLM_API_KEY", "valueFrom": "arn:aws:ssm:us-east-2:__ACCOUNT__:parameter/hl-aigc/llm-api-key" }
+			],
+			"logConfiguration": { "logDriver": "awslogs", "options": {
+				"awslogs-group": "/ecs/go-api-preview", "awslogs-region": "us-east-2", "awslogs-stream-prefix": "pr" } }
+		}
+	]
+}</code></pre>
+
+			<p>
+				<strong>(c)</strong> <code>.github/workflows/pr-preview.yml</code>：
+			</p>
+			<pre><code>name: pr-preview
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-preview-${{ github.event.number }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-east-2
+  CLUSTER: hl-aigc
+
+jobs:
+  build:
+    # fork PR 拿不到 OIDC —— 同仓才继续（安全边界①）
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: 扮演角色①（只能点火）
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/hl-aigc-pr-trigger
+          aws-region: ${{ env.AWS_REGION }}
+      - name: 触发 CodeBuild 并等待
+        run: |
+          BUILD_ID=$(aws codebuild start-build \
+            --project-name hl-aigc-pr-build \
+            --source-version ${{ github.event.pull_request.head.sha }} \
+            --environment-variables-override name=IMAGE_TAG,value=pr-${{ github.event.number }},type=PLAINTEXT \
+            --query 'build.id' --output text)
+          echo "CodeBuild: $BUILD_ID"
+          while :; do
+            S=$(aws codebuild batch-get-builds --ids "$BUILD_ID" \
+                --query 'builds[0].buildStatus' --output text)
+            [ "$S" = "IN_PROGRESS" ] || break
+            sleep 15
+          done
+          [ "$S" = "SUCCEEDED" ] || { echo "build failed: $S"; exit 1; }
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      PR: ${{ github.event.number }}
+      HOST: api-pr-${{ github.event.number }}.${{ vars.PREVIEW_DOMAIN }}
+    steps:
+      - uses: actions/checkout@v4   # 读 .aws/preview-taskdef.json
+      - name: 扮演角色③（部署员）
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/hl-aigc-preview-deploy
+          aws-region: ${{ env.AWS_REGION }}
+      - name: 部署预览环境（任务定义 → 目标组 → ALB 规则 → 服务）
+        run: |
+          IMAGE="${{ vars.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com/hl-aigc/go-api:pr-$PR"
+          sed -e "s|__PR__|$PR|g" -e "s|__IMAGE__|$IMAGE|g" \
+              -e "s|__ACCOUNT__|${{ vars.AWS_ACCOUNT_ID }}|g" \
+              .aws/preview-taskdef.json &gt; taskdef.json
+          TD=$(aws ecs register-task-definition --cli-input-json file://taskdef.json \
+               --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          TG=$(aws elbv2 create-target-group --name "pr-$PR-go" \
+               --protocol HTTP --port 8080 --vpc-id ${{ vars.PREVIEW_VPC_ID }} \
+               --target-type ip --health-check-path /healthz \
+               --query 'TargetGroups[0].TargetGroupArn' --output text)   # 同名幂等
+
+          aws elbv2 create-rule --listener-arn ${{ vars.PREVIEW_LISTENER_ARN }} \
+            --priority $PR \
+            --conditions Field=host-header,Values=$HOST \
+            --actions Type=forward,TargetGroupArn=$TG 2&gt;/dev/null || true   # 已存在则跳过
+
+          STATUS=$(aws ecs describe-services --cluster $CLUSTER --services "pr-$PR" \
+                   --query 'services[0].status' --output text 2&gt;/dev/null || echo MISSING)
+          if [ "$STATUS" = "ACTIVE" ]; then
+            aws ecs update-service --cluster $CLUSTER --service "pr-$PR" \
+              --task-definition "$TD" --force-new-deployment
+          else
+            aws ecs create-service --cluster $CLUSTER --service-name "pr-$PR" \
+              --task-definition "$TD" --desired-count 1 --launch-type FARGATE \
+              --network-configuration "awsvpcConfiguration={subnets=[${{ vars.PREVIEW_SUBNETS }}],securityGroups=[${{ vars.PREVIEW_SG }}],assignPublicIp=DISABLED}" \
+              --load-balancers "targetGroupArn=$TG,containerName=go-api,containerPort=8080"
+          fi
+          aws ecs wait services-stable --cluster $CLUSTER --services "pr-$PR"
+      - name: Cloudflare DNS（灰云 CNAME，幂等）
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          API="https://api.cloudflare.com/client/v4/zones/${{ vars.CF_ZONE_ID }}/dns_records"
+          RID=$(curl -s -H "Authorization: Bearer $CF_TOKEN" "$API?name=$HOST" \
+                | jq -r '.result[0].id // empty')
+          BODY=$(jq -nc --arg h "$HOST" --arg t "${{ vars.PREVIEW_ALB_DNS }}" \
+                 '{type:"CNAME",name:$h,content:$t,proxied:false,ttl:60}')
+          if [ -n "$RID" ]; then
+            curl -sf -X PUT "$API/$RID" -H "Authorization: Bearer $CF_TOKEN" \
+              -H "Content-Type: application/json" -d "$BODY" &gt; /dev/null
+          else
+            curl -sf -X POST "$API" -H "Authorization: Bearer $CF_TOKEN" \
+              -H "Content-Type: application/json" -d "$BODY" &gt; /dev/null
+          fi
+      - name: 回写 PR 评论
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment $PR --repo ${{ github.repository }} \
+            --body "🚀 预览环境已就绪：https://$HOST/healthz ｜ https://$HOST/intro/octocat"</code></pre>
+
+			<p>
+				<strong>(d)</strong> <code>.github/workflows/pr-cleanup.yml</code>：
+			</p>
+			<pre><code>name: pr-cleanup
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  id-token: write
+  pull-requests: write
+
+env:
+  AWS_REGION: us-east-2
+  CLUSTER: hl-aigc
+
+jobs:
+  destroy:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      PR: ${{ github.event.number }}
+      HOST: api-pr-${{ github.event.number }}.${{ vars.PREVIEW_DOMAIN }}
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/hl-aigc-preview-deploy
+          aws-region: ${{ env.AWS_REGION }}
+      - name: 销毁（服务 → 规则 → 目标组 → DNS → 镜像）
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          aws ecs delete-service --cluster $CLUSTER --service "pr-$PR" --force || true
+          aws ecs wait services-inactive --cluster $CLUSTER --services "pr-$PR" || true
+
+          RULE=$(aws elbv2 describe-rules --listener-arn ${{ vars.PREVIEW_LISTENER_ARN }} \
+                 --query "Rules[?Priority=='$PR'].RuleArn" --output text)
+          [ -n "$RULE" ] &amp;&amp; aws elbv2 delete-rule --rule-arn $RULE || true
+
+          TG=$(aws elbv2 describe-target-groups --names "pr-$PR-go" \
+               --query 'TargetGroups[0].TargetGroupArn' --output text 2&gt;/dev/null || true)
+          [ -n "$TG" ] &amp;&amp; aws elbv2 delete-target-group --target-group-arn $TG || true
+
+          aws ecr batch-delete-image --repository-name hl-aigc/go-api \
+            --image-ids imageTag=pr-$PR || true
+
+          API="https://api.cloudflare.com/client/v4/zones/${{ vars.CF_ZONE_ID }}/dns_records"
+          RID=$(curl -s -H "Authorization: Bearer $CF_TOKEN" "$API?name=$HOST" \
+                | jq -r '.result[0].id // empty')
+          [ -n "$RID" ] &amp;&amp; curl -sf -X DELETE "$API/$RID" \
+            -H "Authorization: Bearer $CF_TOKEN" &gt; /dev/null || true
+      - name: 回写 PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr comment $PR --repo ${{ github.repository }} --body "🧹 预览环境已销毁并验证清理完成"</code></pre>
+
+			<p>
+				<strong>(e)</strong>
+				<code>.github/workflows/preview-reconcile.yml</code>（夜间兜底，借鉴同学
+				A）：
+			</p>
+			<pre><code>name: preview-reconcile
+on:
+  schedule:
+    - cron: "0 18 * * *"   # UTC 18:00 = 北京时间凌晨 2 点
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/hl-aigc-preview-deploy
+          aws-region: us-east-2
+      - name: 清理孤儿预览环境
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          OPEN=$(gh pr list --repo ${{ github.repository }} --state open \
+                 --json number --jq '.[].number')
+          for ARN in $(aws ecs list-services --cluster hl-aigc \
+                       --query 'serviceArns[]' --output text); do
+            NAME=$(basename "$ARN")
+            case "$NAME" in pr-*) ;; *) continue ;; esac
+            N=${NAME#pr-}
+            if ! echo "$OPEN" | grep -qx "$N"; then
+              echo "孤儿环境 pr-$N，触发清理"
+              gh workflow run pr-cleanup.yml --repo ${{ github.repository }} || true
+              aws ecs delete-service --cluster hl-aigc --service "pr-$N" --force || true
+            fi
+          done</code></pre>
+			<div class="warn">
+				角色①③的信任策略 sub 是 <code>…:pull_request</code>，而 reconcile 走
+				schedule 事件，OIDC sub 是
+				<code>repo:…:ref:refs/heads/main</code>——需要在<strong
+					>角色③</strong
+				>的信任策略里把 StringLike 的 sub 改成数组，追加
+				<code
+					>"repo:kashen336699-ks/hl-aigc:ref:refs/heads/main"</code
+				>，否则夜间任务会 AssumeRole 失败。
+			</div>
+
+			<h3><span class="step">3.8</span>端到端验证</h3>
+			<ol>
+				<li>
+					开一个新 PR → Actions 里 build/deploy 两个 job 跑绿 → PR 出现预览 URL
+					评论。
+				</li>
+				<li>
+					<code>curl https://api-pr-N.preview.&lt;域名&gt;/intro/octocat</code>
+					返回 AI 介绍。
+				</li>
+				<li>
+					再 push 一个 commit → synchronize 触发重建 → 服务滚动更新为新镜像。
+				</li>
+				<li>
+					关闭 PR → cleanup 跑绿 → 控制台确认服务/规则/目标组/DNS/镜像全部消失。
+				</li>
+				<li>
+					手动跑一次 preview-reconcile（workflow_dispatch）确认兜底逻辑无误。
+				</li>
+			</ol>
+			<div class="check">五步全过 → 作业第 3 条完成。</div>
+
+			<!-- ============================================================ -->
+			<h2 id="s4"><span class="no">04</span>成本账单与删除清单</h2>
+
+			<table>
+				<tr>
+					<th>资源</th>
+					<th>约 $/小时</th>
+					<th>说明</th>
+				</tr>
+				<tr>
+					<td>NAT Gateway</td>
+					<td>0.045</td>
+					<td>最贵单品；删了它 Fargate 拉不了镜像、出不了网</td>
+				</tr>
+				<tr>
+					<td>Aurora Serverless v2（0.5 ACU 闲置）</td>
+					<td>0.06</td>
+					<td>生产库</td>
+				</tr>
+				<tr>
+					<td>内网 ALB + 预览 ALB</td>
+					<td>0.045</td>
+					<td>0.0225 × 2</td>
+				</tr>
+				<tr>
+					<td>Fargate go-api（0.25 vCPU/0.5GB ARM）</td>
+					<td>0.01</td>
+					<td>每个 PR 预览任务再 +0.012（1GB 内存）</td>
+				</tr>
+				<tr>
+					<td>跳板机 t4g.nano</td>
+					<td>0.004</td>
+					<td></td>
+				</tr>
+				<tr>
+					<td>Cloud Map 命名空间</td>
+					<td>≈$0.5/月</td>
+					<td>背后是一个 Route 53 私有托管区</td>
+				</tr>
+				<tr>
+					<td>ECR / SSM / CodeBuild / IAM / ACM</td>
+					<td>≈0</td>
+					<td>CodeBuild 每次构建约 1–2 美分；其余免费或忽略不计</td>
+				</tr>
+				<tr>
+					<td><strong>全开合计</strong></td>
+					<td><strong>≈0.17 + 0.012×PR数</strong></td>
+					<td><strong>≈ $4/天</strong>——建议集中 1–2 天做完，演示完立即删</td>
+				</tr>
+			</table>
+
+			<p>
+				<strong
+					>删除清单（顺序执行，手动建的资源不在 SAM
+					栈里，漏删会一直扣钱或卡住删栈）：</strong
+				>
+			</p>
+			<ol>
+				<li>
+					关闭所有测试 PR（触发自动清理），控制台确认无
+					<code>pr-*</code>
+					服务/规则/目标组残留。
+				</li>
+				<li>ECS：删服务 go-api → 删集群 hl-aigc。</li>
+				<li>EC2：删两个 ALB → 删所有目标组。</li>
+				<li>Cloud Map：先删服务 go-api，再删命名空间 hl-aigc.local。</li>
+				<li>ECR：删仓库（勾选连镜像一起删）。CloudWatch：删 /ecs/* 日志组。</li>
+				<li>
+					VPC：删 go-sg、alb-internal-sg、alb-preview-sg → 删公有子网 B。<span
+						class="why"
+						>这些手动资源挂在 VPC 上，不先删，下一步 sam delete 会卡在 VPC
+						删不掉。</span
+					>
+				</li>
+				<li>
+					<code>sam delete</code>
+					删底座栈（Aurora/NAT/Lambda/跳板机/VPC）。
+				</li>
+				<li>
+					可留的免费项：IAM 三角色 + OIDC 提供商、CodeBuild 项目、SSM 参数、ACM
+					证书、Cloudflare 记录（预览记录已被 cleanup
+					删掉）。下次演示重建时直接复用。
+				</li>
+			</ol>
+
+			<!-- ============================================================ -->
+			<h2 id="s5"><span class="no">05</span>常见坑速查</h2>
+			<ol>
+				<li>
+					<strong>ALB 要求 2 个不同 AZ 的子网</strong>——上周模板只有 1
+					个公有子网，预览 ALB 前必须先建公有子网 B（3.2b）。
+				</li>
+				<li>
+					<strong>任务架构 ≠ 镜像架构</strong>：任务定义选了 ARM64 但镜像是
+					x86（或反过来），任务启动即退，日志里只有 exec format error。
+				</li>
+				<li>
+					<strong>镜像里没有 CA 证书</strong>：alpine 基础镜像调 openrouter
+					HTTPS 报 x509 错误，Dockerfile 里
+					<code>apk add ca-certificates</code>
+					不能省。
+				</li>
+				<li>
+					<strong>Go 必须监听 0.0.0.0</strong>：写成 127.0.0.1
+					的话健康检查永远不过。
+				</li>
+				<li>
+					<strong>db-sg 没放行 go-sg</strong>：表现为连库<strong
+						>超时</strong
+					>（安全组静默丢包，不是拒绝）。
+				</li>
+				<li>
+					<strong>任务卡 PROVISIONING → STOPPED</strong>：点开已停止任务看
+					stopped reason——多半是执行角色缺
+					<code>ssm:GetParameters</code>（读不到密钥）或拉不到镜像（NAT 被删 /
+					ECR 权限）。
+				</li>
+				<li>
+					<strong
+						>Cloudflare 预览记录必须灰云</strong
+					>：免费版通用证书不覆盖二级子域（*.preview.域名），橙云会 TLS
+					握手失败；TLS 由 ALB 上的 ACM 通配证书终结。
+				</li>
+				<li>
+					<strong
+						>ACM 证书区域必须和 ALB 相同</strong
+					>（us-east-2），别习惯性地申请到 us-east-1。
+				</li>
+				<li>
+					<strong
+						>别用 pull_request_target + checkout PR 代码</strong
+					>：那是把密钥递给不可信代码。本方案用 <code>pull_request</code>，fork
+					天然无 OIDC；构建不可信代码的 CodeBuild 里没有部署权限。
+				</li>
+				<li>
+					<strong>Cloud Map DNS TTL</strong>：任务重启的十几秒内 Lambda
+					可能解析到旧 IP，TTL 设 10 秒缓解；单任务作业场景可接受，生产应走
+					ALB——答辩加分点。
+				</li>
+			</ol>
+
+			<!-- ============================================================ -->
+			<h2 id="s6"><span class="no">06</span>交作业自查清单</h2>
+			<table>
+				<tr>
+					<th>作业要求</th>
+					<th>验证动作</th>
+					<th>✔</th>
+				</tr>
+				<tr>
+					<td>1. Go 环境 + Go 连库 + 迁移 Node 查询</td>
+					<td>
+						本地/跳板机 <code>curl /profile/&lt;你的login&gt;</code> 返回 Aurora
+						真实数据
+					</td>
+					<td>☐</td>
+				</tr>
+				<tr>
+					<td>1. 用用户名生成个人介绍 + 前端</td>
+					<td>hl-aigc.pages.dev 点按钮出 AI 介绍</td>
+					<td>☐</td>
+				</tr>
+				<tr>
+					<td>2. ECR</td>
+					<td>仓库里有 prod 与 pr-N 镜像</td>
+					<td>☐</td>
+				</tr>
+				<tr>
+					<td>2. ECS + Fargate</td>
+					<td>集群 hl-aigc 的 go-api 服务 steady state</td>
+					<td>☐</td>
+				</tr>
+				<tr>
+					<td>2. ALB</td>
+					<td>内网 ALB 目标组 healthy；预览 ALB Host 路由生效</td>
+					<td>☐</td>
+				</tr>
+				<tr>
+					<td>2. Cloud Map 链接 Lambda</td>
+					<td>
+						Lambda 环境变量 GO_API_URL 指向 go-api.hl-aigc.local，前端全链路可用
+					</td>
+					<td>☐</td>
+				</tr>
+				<tr>
+					<td>3. PR 独立环境（Go 版）</td>
+					<td>开 PR 自动出预览 URL，带独立 postgres，不碰生产库</td>
+					<td>☐</td>
+				</tr>
+				<tr>
+					<td>3. Cloudflare</td>
+					<td>api-pr-N.preview.域名 灰云解析 + ACM 通配证书 HTTPS</td>
+					<td>☐</td>
+				</tr>
+				<tr>
+					<td>3. IAM 三个角色</td>
+					<td>能说清 触发/构建/部署 三角色各自的信任边界与最小权限</td>
+					<td>☐</td>
+				</tr>
+				<tr>
+					<td>3. 生命周期</td>
+					<td>PR closed 自动销毁 + 夜间 reconcile 兜底</td>
+					<td>☐</td>
+				</tr>
+			</table>
+
+			<p class="sub" style="margin-top:40px">
+				hl-aigc · 周六作业实施指南 · 与仓库真实代码（github_users
+				表、template.yaml 网络拓扑、us-east-2）逐项核对过 · 动手愉快 🛠️
+			</p>
+		</div>
+	</body>
+</html>

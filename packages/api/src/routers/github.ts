@@ -1,5 +1,6 @@
 import { db } from "@hl-aigc/db";
 import { githubUser } from "@hl-aigc/db/schema/github-user";
+import { env } from "@hl-aigc/env/server";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -17,6 +18,15 @@ const SYNC_RATE_LIMIT_WINDOW_MS = 60_000;
 const syncRateLimiter = createRateLimiter({
 	maxRequests: SYNC_RATE_LIMIT_MAX_REQUESTS,
 	windowMs: SYNC_RATE_LIMIT_WINDOW_MS,
+});
+
+const INTRO_RATE_LIMIT_MAX_REQUESTS = 5;
+const INTRO_RATE_LIMIT_WINDOW_MS = 60_000;
+const INTRO_TIMEOUT_MS = 25_000;
+
+const introRateLimiter = createRateLimiter({
+	maxRequests: INTRO_RATE_LIMIT_MAX_REQUESTS,
+	windowMs: INTRO_RATE_LIMIT_WINDOW_MS,
 });
 
 const GITHUB_CLIENT_ERROR_TO_PDR_CODE: Record<GithubClientErrorKind, string> = {
@@ -134,6 +144,47 @@ export const githubRouter = router({
 				followers: saved.followers,
 				syncedAt: saved.syncedAt,
 			};
+		}),
+
+	generateIntro: publicProcedure
+		.input(z.object({ login: z.string().trim().min(1, "Login is required") }))
+		.mutation(async ({ ctx, input }) => {
+			const rateLimit = introRateLimiter.check(ctx.clientIp);
+			if (!rateLimit.allowed) {
+				throw new TRPCError({
+					code: "TOO_MANY_REQUESTS",
+					message: "Too many intro requests, please try again later",
+					cause: { pdrCode: "GITHUB_RATE_LIMITED" },
+				});
+			}
+
+			let res: Response;
+			try {
+				res = await fetch(
+					`${env.GO_API_URL}/intro/${encodeURIComponent(input.login)}`,
+					{ signal: AbortSignal.timeout(INTRO_TIMEOUT_MS) }
+				);
+			} catch {
+				throw new TRPCError({
+					code: "BAD_GATEWAY",
+					message: "go-api is unreachable",
+				});
+			}
+
+			if (res.status === 404) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "GitHub user not synced yet",
+				});
+			}
+			if (!res.ok) {
+				throw new TRPCError({
+					code: "BAD_GATEWAY",
+					message: `go-api responded with ${res.status}`,
+				});
+			}
+
+			return (await res.json()) as { profile: unknown; intro: string };
 		}),
 
 	getUser: adminProcedure

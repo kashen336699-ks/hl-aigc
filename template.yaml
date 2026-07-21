@@ -281,6 +281,7 @@ Resources:
           BETTER_AUTH_SECRET: !Ref BetterAuthSecret
           BETTER_AUTH_URL: !Ref BetterAuthUrl
           CORS_ORIGIN: !Ref CorsOrigin
+          GO_API_URL: http://go-api.hl-aigc.local:8080
       Events:
         RootPath:
           Type: HttpApi

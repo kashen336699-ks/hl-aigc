@@ -68,7 +68,7 @@ function RouteComponent() {
 				</p>
 			</div>
 			<GithubTokenForm onSuccess={setResult} />
-			{result && <SyncResultCard result={result} />}
+			{result && <SyncResultCard key={result.githubId} result={result} />}
 			<SecurityNotice />
 		</div>
 	);
@@ -197,6 +197,14 @@ function GithubTokenForm({
 }
 
 function SyncResultCard({ result }: { result: SyncResult }) {
+	const generateIntroMutation = useMutation(
+		trpc.github.generateIntro.mutationOptions({
+			onError: (error) => {
+				toast.error(getPdrErrorMessage(error, "生成个人介绍失败，请稍后重试"));
+			},
+		})
+	);
+
 	return (
 		<Card>
 			<CardHeader className="flex-row items-center gap-3">
@@ -235,6 +243,20 @@ function SyncResultCard({ result }: { result: SyncResult }) {
 				<p className="text-muted-foreground">
 					最近同步于 {formatSyncedAt(result.syncedAt)}
 				</p>
+				<Button
+					className="w-full"
+					disabled={generateIntroMutation.isPending}
+					onClick={() => generateIntroMutation.mutate({ login: result.login })}
+					type="button"
+					variant="outline"
+				>
+					{generateIntroMutation.isPending ? "生成中…" : "AI 生成个人介绍"}
+				</Button>
+				{generateIntroMutation.data && (
+					<p className="rounded-md bg-muted/40 p-3 leading-relaxed">
+						{generateIntroMutation.data.intro}
+					</p>
+				)}
 			</CardContent>
 		</Card>
 	);

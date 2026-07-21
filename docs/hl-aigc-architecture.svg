@@ -1,0 +1,311 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#061426"/>
+      <stop offset="0.55" stop-color="#071a30"/>
+      <stop offset="1" stop-color="#030b17"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="45%" r="65%">
+      <stop offset="0" stop-color="#10375c" stop-opacity=".30"/>
+      <stop offset="1" stop-color="#061426" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glowBlue" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowPurple" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowGreen" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <marker id="arrowWhite" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ecf7ff"/>
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#37b9ff"/>
+    </marker>
+    <marker id="arrowMagenta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#fb60d2"/>
+    </marker>
+    <marker id="arrowOrange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ff9d24"/>
+    </marker>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", Arial, sans-serif; fill: #eef8ff; }
+      .muted { fill: #a9bdd0; }
+      .tiny { font-size: 13px; }
+      .small { font-size: 15px; }
+      .body { font-size: 17px; }
+      .nodeTitle { font-size: 18px; font-weight: 700; }
+      .sectionTitle { font-size: 26px; font-weight: 800; fill: #7ee7ff; }
+      .section { fill: #061528; fill-opacity: .70; stroke: #245277; stroke-width: 1.4; rx: 14; }
+      .boundary { fill: #071a2b; fill-opacity: .48; stroke: #a8bed0; stroke-width: 1.7; stroke-dasharray: 7 6; rx: 14; }
+      .private { fill: #061f30; fill-opacity: .45; stroke: #37b9ff; stroke-width: 1.5; stroke-dasharray: 7 5; rx: 12; }
+      .cardBlue { fill: #091d34; stroke: #39baff; stroke-width: 1.8; rx: 12; filter: url(#glowBlue); }
+      .cardPurple { fill: #15142e; stroke: #d461ff; stroke-width: 1.8; rx: 12; filter: url(#glowPurple); }
+      .cardGreen { fill: #102b24; stroke: #64e58a; stroke-width: 1.7; rx: 12; filter: url(#glowGreen); }
+      .cardOrange { fill: #30200c; stroke: #ff9d24; stroke-width: 1.8; rx: 12; filter: url(#glowPurple); }
+      .cardPink { fill: #2b1328; stroke: #fb60d2; stroke-width: 1.7; rx: 12; filter: url(#glowPurple); }
+      .line { fill: none; stroke: #ecf7ff; stroke-width: 2.1; marker-end: url(#arrowWhite); }
+      .lineBoth { fill: none; stroke: #ecf7ff; stroke-width: 2.1; marker-start: url(#arrowWhite); marker-end: url(#arrowWhite); }
+      .service { fill: none; stroke: #37b9ff; stroke-width: 2.1; stroke-dasharray: 7 5; marker-end: url(#arrowBlue); }
+      .secret { fill: none; stroke: #fb60d2; stroke-width: 2.1; stroke-dasharray: 7 5; marker-end: url(#arrowMagenta); }
+      .ci { fill: none; stroke: #ff9d24; stroke-width: 2.2; stroke-dasharray: 8 5; marker-end: url(#arrowOrange); }
+      .githubPath { fill: none; stroke: #fb60d2; stroke-width: 2.2; marker-end: url(#arrowMagenta); }
+      .llmPath { fill: none; stroke: #37b9ff; stroke-width: 2.2; marker-end: url(#arrowBlue); }
+      .pill { fill: #09223b; stroke: #37b9ff; stroke-width: 1.2; rx: 13; }
+    </style>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <rect width="1920" height="1080" fill="url(#halo)"/>
+  <rect x="7" y="7" width="1906" height="1066" rx="18" fill="none" stroke="#2c73a8" stroke-width="1.3"/>
+
+  <text x="25" y="52" font-size="38" font-weight="900">HL-AIGC · Go × ECS Fargate × PR 预览环境</text>
+  <text x="27" y="83" font-size="19" class="muted">AWS us-east-2 · 已部署 · PR 生命周期端到端验收通过</text>
+  <rect x="1465" y="25" width="415" height="44" class="pill"/>
+  <text x="1485" y="53" font-size="17" font-weight="700">GitHub: kashen336699-ks/hl-aigc</text>
+
+  <!-- ③ PR PREVIEW -->
+  <rect x="12" y="98" width="1896" height="344" class="section"/>
+  <text x="28" y="132" class="sectionTitle">③ PR 独立预览流水线</text>
+
+  <!-- preview build arrows -->
+  <path d="M205 182 H235" class="ci"/>
+  <path d="M425 182 H455" class="ci"/>
+  <path d="M645 182 H675" class="ci"/>
+  <path d="M925 182 H955" class="ci"/>
+  <path d="M1125 182 H1155" class="ci"/>
+  <path d="M1365 182 H1385" class="ci"/>
+
+  <!-- preview build cards -->
+  <rect x="35" y="148" width="170" height="69" class="cardPurple"/>
+  <text x="50" y="172" class="nodeTitle">同仓库 PR</text>
+  <text x="50" y="194" class="tiny muted">opened / synchronize</text>
+  <text x="50" y="211" class="tiny muted">/ reopened</text>
+
+  <rect x="235" y="148" width="190" height="69" class="cardBlue"/>
+  <text x="250" y="174" class="nodeTitle">GitHub Actions</text>
+  <text x="250" y="201" class="small muted">校验 PR + OIDC</text>
+
+  <rect x="455" y="148" width="190" height="69" class="cardGreen"/>
+  <text x="470" y="171" class="small">角色①</text>
+  <text x="470" y="191" class="small" font-weight="700">hl-aigc-pr-trigger</text>
+  <text x="470" y="210" class="tiny muted">仅 StartBuild + 查询</text>
+
+  <rect x="675" y="140" width="250" height="84" class="cardBlue"/>
+  <text x="692" y="166" class="nodeTitle">CodeBuild · hl-aigc-pr-build</text>
+  <text x="692" y="190" class="small muted">角色② · 仅构建 / 推镜像</text>
+  <text x="692" y="212" class="small muted">内联 buildspec · ARM64</text>
+
+  <rect x="955" y="148" width="170" height="69" class="cardPurple"/>
+  <text x="1015" y="174" class="nodeTitle">ECR</text>
+  <text x="976" y="201" class="small muted">go-api:pr-N-SHA</text>
+
+  <rect x="1155" y="140" width="210" height="84" class="cardGreen"/>
+  <text x="1172" y="163" class="small">GHA deploy job · OIDC</text>
+  <text x="1172" y="186" class="small" font-weight="700">角色③ preview-deploy</text>
+  <text x="1172" y="209" class="tiny muted">AWS only · CF 另走 repo secret</text>
+  <text x="936" y="135" class="tiny" fill="#ffad38">CodeBuild 完成 → GHA deploy job</text>
+
+  <!-- runtime request arrows -->
+  <path d="M185 287 H215" class="line"/>
+  <path d="M385 287 H415" class="line"/>
+  <path d="M810 287 H840" class="line"/>
+  <path d="M1060 287 H1090" class="line"/>
+  <path d="M1300 287 H1410" class="line"/>
+
+  <rect x="35" y="252" width="150" height="70" class="cardBlue"/>
+  <text x="55" y="282" class="nodeTitle">浏览器 / curl</text>
+  <text x="55" y="306" class="tiny muted">公开 HTTPS 验证</text>
+
+  <rect x="215" y="252" width="170" height="70" class="cardBlue"/>
+  <text x="233" y="280" class="nodeTitle">Cloudflare DNS</text>
+  <text x="233" y="305" class="small muted">DNS-only CNAME</text>
+
+  <rect x="415" y="245" width="395" height="84" class="cardPurple"/>
+  <text x="437" y="272" class="nodeTitle">共享预览 ALB · HTTPS:443</text>
+  <text x="437" y="296" class="small muted">Internet-facing · 公有子网 A/B · 双 AZ</text>
+  <text x="437" y="318" class="tiny" fill="#ffad38">ACM 通配证书挂载：*.preview.sfaigc.com</text>
+
+  <rect x="840" y="252" width="220" height="70" class="cardBlue"/>
+  <text x="860" y="275" class="nodeTitle">Host 规则</text>
+  <text x="860" y="297" class="small muted">api-pr-N.preview.sfaigc.com</text>
+  <text x="860" y="316" class="tiny" fill="#ffad38">priority = PR N</text>
+
+  <rect x="1090" y="252" width="210" height="70" class="cardBlue"/>
+  <text x="1110" y="275" class="nodeTitle">目标组 pr-N-go</text>
+  <text x="1110" y="297" class="small muted">IP target · HTTP:8080</text>
+  <text x="1110" y="316" class="tiny" fill="#ffad38">health check /healthz</text>
+
+  <!-- preview ECS boundary -->
+  <rect x="1385" y="122" width="500" height="210" class="boundary"/>
+  <text x="1405" y="149" class="small" fill="#75ddff">VPC · 私有子网 A/B</text>
+  <text x="1405" y="176" class="nodeTitle">ECS Fargate 服务 pr-N</text>
+  <text x="1405" y="198" class="small muted">desired 1 · ARM64 · 无公网 IP</text>
+  <rect x="1410" y="218" width="170" height="84" class="cardBlue"/>
+  <text x="1430" y="252" class="nodeTitle">Go API :8080</text>
+  <text x="1430" y="278" class="small muted">PREVIEW_SEED=1</text>
+  <rect x="1600" y="218" width="260" height="84" class="cardPurple"/>
+  <text x="1620" y="249" class="nodeTitle">PostgreSQL 16 sidecar</text>
+  <text x="1620" y="276" class="small muted">localhost:5432 · 临时独立库</text>
+  <path d="M1580 260 H1600" class="lineBoth"/>
+  <text x="1408" y="322" class="tiny" fill="#ffad38">⚠ 随任务销毁；与生产 Aurora 完全隔离</text>
+
+  <!-- preview comment and lifecycle -->
+  <rect x="35" y="354" width="250" height="65" class="cardPurple"/>
+  <text x="55" y="379" class="nodeTitle">PR 评论：真实预览链接</text>
+  <text x="55" y="402" class="tiny muted">/healthz · /intro/octocat</text>
+  <path d="M150 354 V324" class="service"/>
+
+  <rect x="310" y="354" width="355" height="28" class="cardPink"/>
+  <text x="328" y="374" class="tiny">Cloudflare：GHA Secret · CLOUDFLARE_API_TOKEN</text>
+  <path d="M1365 182 H1375 V338 H150 V354" class="ci"/>
+  <text x="700" y="348" class="tiny" fill="#ffad38">AWS 部署 + DNS 写入 + 外部 /healthz 验证通过 → 发布评论</text>
+  <text x="310" y="411" class="tiny" fill="#ffad38">synchronize → 新 SHA 镜像 + 新 task revision + ECS rolling update</text>
+
+  <rect x="1385" y="347" width="500" height="37" class="cardOrange"/>
+  <text x="1405" y="371" class="small"><tspan font-weight="800">PR closed → 自动清理：</tspan> ECS → 规则 → TG → DNS → ECR pr-N* → 复查</text>
+  <rect x="1385" y="394" width="500" height="37" class="cardOrange"/>
+  <text x="1405" y="418" class="small"><tspan font-weight="800">每日 Reconcile：</tspan> ECS / TG / 规则 / ECR / DNS 对照 open PR</text>
+  <path d="M1885 366 H1894 V205 H1885" class="ci"/>
+  <path d="M1885 412 H1900 V205 H1888" class="ci"/>
+
+  <!-- ① PRODUCTION -->
+  <rect x="12" y="454" width="1896" height="426" class="section"/>
+  <text x="28" y="488" class="sectionTitle">① 生产运行链路</text>
+
+  <!-- production VPC -->
+  <rect x="605" y="500" width="1040" height="365" class="boundary"/>
+  <text x="625" y="530" font-size="20" font-weight="800" fill="#75ddff">VPC hl-aigc-vpc · 10.0.0.0/16</text>
+  <rect x="625" y="543" width="340" height="43" class="cardGreen"/>
+  <text x="645" y="570" class="small">公有子网 A · 10.0.0.0/24 · us-east-2a</text>
+  <rect x="985" y="543" width="460" height="43" class="cardGreen"/>
+  <text x="1005" y="570" class="small">公有 B · 10.0.3.0/24 · us-east-2b</text>
+  <rect x="625" y="600" width="820" height="245" class="private"/>
+  <text x="642" y="625" class="small" fill="#75ddff">私有子网 A/B · Lambda / ECS / Aurora · 无公网入口</text>
+
+  <!-- production main path arrows -->
+  <path d="M105 681 H125" class="line"/>
+  <path d="M515 681 H640" class="line"/>
+  <path d="M820 681 H840" class="line"/>
+  <path d="M1015 681 H1035" class="line"/>
+  <path d="M1245 681 H1265" class="lineBoth"/>
+
+  <rect x="30" y="646" width="75" height="70" class="cardBlue"/>
+  <text x="48" y="676" class="nodeTitle">用户</text>
+  <text x="42" y="700" class="tiny muted">浏览器</text>
+
+  <path d="M67 716 V750 H430 V724" class="line"/>
+  <text x="155" y="744" class="tiny" fill="#75ddff">前端 JS 直接 HTTPS / tRPC</text>
+
+  <rect x="125" y="638" width="190" height="86" class="cardOrange"/>
+  <text x="145" y="668" class="nodeTitle">Cloudflare Pages</text>
+  <text x="145" y="693" class="small muted">React + Vite SPA</text>
+  <text x="145" y="714" class="tiny muted">https://hl-aigc.pages.dev</text>
+
+  <rect x="345" y="638" width="170" height="86" class="cardPurple"/>
+  <text x="368" y="670" class="nodeTitle">API Gateway</text>
+  <text x="368" y="698" class="small muted">HTTP API</text>
+
+  <rect x="640" y="632" width="180" height="98" class="cardOrange"/>
+  <text x="660" y="659" class="nodeTitle">Lambda · Hono</text>
+  <text x="660" y="683" class="small muted">tRPC + Better Auth</text>
+  <text x="660" y="705" class="small muted">generateIntro 薄代理</text>
+  <text x="660" y="724" class="tiny" fill="#ffad38">VPC 私有子网 A/B</text>
+
+  <rect x="840" y="642" width="175" height="78" class="cardBlue"/>
+  <text x="858" y="669" class="nodeTitle">Cloud Map</text>
+  <text x="858" y="694" class="tiny muted">go-api.hl-aigc.local:8080</text>
+  <text x="858" y="712" class="tiny muted">私有 DNS · TTL 10s</text>
+
+  <rect x="1035" y="632" width="210" height="98" class="cardBlue"/>
+  <text x="1055" y="660" class="nodeTitle">ECS Fargate · Go API</text>
+  <text x="1055" y="684" class="small muted">:8080 · desired 1</text>
+  <text x="1055" y="707" class="small muted">私有 A/B · 无公网 IP</text>
+
+  <rect x="1265" y="632" width="180" height="98" class="cardPurple"/>
+  <text x="1282" y="659" class="nodeTitle">Aurora PostgreSQL</text>
+  <text x="1282" y="684" class="small muted">Serverless v2 · 私有</text>
+  <text x="1282" y="707" class="small muted">github_users</text>
+
+  <!-- Lambda direct DB lane -->
+  <path d="M730 730 V760 H1355 V730" class="githubPath"/>
+  <text x="860" y="753" class="small" fill="#fb8bdd">Better Auth / tRPC / GitHub 同步数据（Lambda ↔ Aurora）</text>
+
+  <!-- internal ALB secondary -->
+  <rect x="815" y="790" width="200" height="55" class="cardPurple"/>
+  <text x="835" y="814" class="nodeTitle">Internal ALB</text>
+  <text x="835" y="835" class="tiny muted">/healthz · 运维观察 / 内网调试</text>
+  <path d="M1015 817 H1140 V730" class="service"/>
+
+  <!-- secrets only to ECS -->
+  <rect x="1035" y="790" width="230" height="55" class="cardPink"/>
+  <text x="1055" y="814" class="nodeTitle">SSM Parameter Store</text>
+  <text x="1055" y="835" class="tiny muted">DATABASE_URL + LLM_API_KEY</text>
+  <path d="M1150 790 V730" class="secret"/>
+
+  <!-- bastion: public subnet management path -->
+  <rect x="1260" y="548" width="175" height="33" class="cardBlue"/>
+  <text x="1275" y="570" class="tiny">跳板机 t4g.nano · SSH:22</text>
+  <path d="M1348 581 V612 H1355 V632" class="line"/>
+  <text x="1363" y="614" class="tiny muted">SSH 隧道 :5432</text>
+
+  <rect x="1680" y="800" width="205" height="55" class="cardBlue"/>
+  <text x="1700" y="824" class="nodeTitle">开发者</text>
+  <text x="1700" y="846" class="tiny muted">仅个人公网 IP</text>
+  <path d="M1680 827 H1648 V565 H1435" class="line"/>
+
+  <!-- IGW / NAT and split egress -->
+  <rect x="1470" y="535" width="150" height="48" class="cardPurple"/>
+  <text x="1490" y="565" class="nodeTitle">Internet Gateway</text>
+  <rect x="1470" y="642" width="150" height="72" class="cardPurple"/>
+  <text x="1490" y="670" class="nodeTitle">NAT Gateway</text>
+  <text x="1490" y="695" class="small muted">公有子网 A</text>
+  <path d="M1545 642 V583" class="line"/>
+  <text x="1556" y="615" class="tiny muted">0.0.0.0/0</text>
+
+  <!-- Lambda -> NAT -> GitHub API -->
+  <path d="M730 632 V607 H1510 V642" class="githubPath"/>
+  <text x="1120" y="601" class="tiny" fill="#fb8bdd">Lambda 同步出网</text>
+  <path d="M1620 550 H1650 V749 H1680" class="githubPath"/>
+
+  <!-- ECS -> NAT -> LLM -->
+  <path d="M1245 670 H1470" class="llmPath"/>
+  <text x="1290" y="662" class="tiny" fill="#75ddff">Go 调用 LLM</text>
+  <path d="M1620 572 H1660 V647 H1680" class="llmPath"/>
+
+  <rect x="1680" y="612" width="205" height="70" class="cardBlue"/>
+  <text x="1700" y="640" class="nodeTitle">AI 兼容网关 / LLM</text>
+  <text x="1700" y="665" class="small muted">api.sfaigc.com/v1</text>
+  <rect x="1680" y="714" width="205" height="70" class="cardBlue"/>
+  <text x="1700" y="743" class="nodeTitle">GitHub API</text>
+  <text x="1700" y="768" class="small muted">用户资料同步</text>
+
+  <!-- ② DEPLOYMENT -->
+  <rect x="12" y="890" width="1896" height="178" class="section"/>
+  <text x="28" y="924" class="sectionTitle">② 部署与权限</text>
+
+  <rect x="35" y="942" width="1230" height="34" class="cardGreen"/>
+  <text x="52" y="965" class="body"><tspan font-weight="800">A. main push</tspan><tspan class="muted">  →  GHA + OIDC（hl-aigc-gha-deploy）→  AWS SAM  →  API Gateway + Lambda + VPC / Aurora</tspan></text>
+  <rect x="35" y="986" width="1230" height="34" class="cardBlue"/>
+  <text x="52" y="1009" class="body"><tspan font-weight="800">B. 前端 main</tspan><tspan class="muted">  →  Cloudflare Git 集成  →  Cloudflare Pages</tspan></text>
+  <rect x="35" y="1030" width="1230" height="34" class="cardPurple"/>
+  <text x="52" y="1053" class="body"><tspan font-weight="800">C. 生产 Go（X86_64）</tspan><tspan class="muted">  →  本地 Docker amd64  →  ECR :prod  →  手动创建 / 更新 ECS go-api</tspan></text>
+
+  <rect x="1290" y="942" width="265" height="122" class="cardBlue"/>
+  <text x="1320" y="985" font-size="24" font-weight="900">✓ 无长期 AWS 密钥</text>
+  <text x="1320" y="1018" class="body muted">GitHub OIDC AssumeRole</text>
+  <text x="1320" y="1046" class="small muted">构建 / 部署权限分离</text>
+
+  <rect x="1580" y="942" width="305" height="122" class="boundary"/>
+  <path d="M1605 972 H1660" class="line"/>
+  <text x="1680" y="978" class="small">运行时请求</text>
+  <path d="M1605 1004 H1660" class="service"/>
+  <text x="1680" y="1010" class="small">服务发现 / 密钥</text>
+  <path d="M1605 1037 H1660" class="ci"/>
+  <text x="1680" y="1043" class="small">CI/CD / 清理</text>
+</svg>

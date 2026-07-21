@@ -1,0 +1,47 @@
+Built-in image generation mode: style exploration/reference image generation.
+Final delivery mode: manually controlled SVG vector reconstruction for exact labels, arrows, ports, boundaries, and lifecycle semantics.
+
+Final prompt / diagram specification:
+
+Create a polished 16:9 (1920×1080) dark-navy, neon-glow cloud architecture diagram titled
+“HL-AIGC · Go × ECS Fargate × PR 预览环境”. Use crisp Simplified Chinese labels,
+thin white runtime arrows, cyan dashed service-discovery/secret arrows, and orange dashed CI/CD
+and cleanup arrows. Do not invent services or connections. Organize it into three horizontal sections:
+
+1) “③ PR 独立预览流水线”:
+GitHub pull_request opened/synchronize/reopened → GitHub Actions validation + OIDC → IAM role
+hl-aigc-pr-trigger → CodeBuild hl-aigc-pr-build using a separate CodeBuild role and ARM64 buildspec
+→ immutable ECR image go-api:pr-N-SHA → GitHub Actions deploy job using OIDC role
+hl-aigc-preview-deploy for AWS operations. Cloudflare is not accessed through that AWS role; it uses
+the GitHub repository secret CLOUDFLARE_API_TOKEN. Deploy one ECS Fargate service pr-N in private
+subnets A/B, desired count 1, ARM64, no public IP, containing exactly Go API :8080 plus a PostgreSQL 16
+sidecar on localhost:5432; the preview database is temporary and isolated from production Aurora.
+Route public HTTPS traffic through one shared internet-facing dual-AZ preview ALB on :443 using ACM
+certificate *.preview.sfaigc.com, host rule api-pr-N.preview.sfaigc.com with priority=N, and IP target
+group pr-N-go using HTTP:8080 and /healthz. Cloudflare creates a DNS-only CNAME to the shared ALB.
+After external /healthz and /intro/octocat checks pass, publish the real links in a PR comment.
+On synchronize, build a new SHA image/task revision and perform an ECS rolling update. On PR close,
+automatically delete ECS service → listener rule → target group → DNS → ECR pr-N* and verify cleanup.
+Also show a daily reconcile job comparing ECS/TG/rules/ECR/DNS with open pull requests.
+
+2) “① 生产运行链路”:
+User browser → Cloudflare Pages React + Vite SPA. Frontend JavaScript calls API Gateway HTTP API directly
+over HTTPS/tRPC → Lambda Hono (tRPC + Better Auth + generateIntro thin proxy) inside private subnets A/B.
+Lambda accesses Aurora PostgreSQL directly for Better Auth/tRPC/GitHub synchronization and also resolves
+Cloud Map private DNS go-api.hl-aigc.local:8080 → ECS Fargate Go API :8080, desired count 1, in private
+subnets A/B with no public IP → Aurora PostgreSQL Serverless v2. Show Internal ALB /healthz only as an
+operations/debug secondary path, not as Lambda’s main path. Show SSM Parameter Store DATABASE_URL +
+LLM_API_KEY feeding the Go task. Lambda reaches GitHub API through NAT Gateway → Internet Gateway;
+Go reaches api.sfaigc.com/v1 through NAT Gateway → Internet Gateway. VPC is hl-aigc-vpc 10.0.0.0/16;
+public subnet A is 10.0.0.0/24 us-east-2a, public subnet B is 10.0.3.0/24 us-east-2b; Lambda/ECS/Aurora
+are in private A/B. Show developer public-IP-only SSH:22 → t4g.nano bastion → SSH tunnel :5432 → Aurora.
+
+3) “② 部署与权限”:
+A. main push → GitHub Actions + OIDC role hl-aigc-gha-deploy → AWS SAM → API Gateway/Lambda/VPC/Aurora.
+B. frontend main → Cloudflare Git integration → Cloudflare Pages.
+C. production Go is X86_64: local Docker amd64 → ECR :prod → manually create/update ECS go-api.
+Emphasize: no long-lived AWS access keys; GitHub OIDC AssumeRole; build and deploy permissions separated.
+
+Style: professional AWS architecture-board aesthetic, dark navy background, cyan section headings,
+rounded rectangles with restrained blue/green/purple/orange glows, high information density but readable,
+clear VPC/subnet boundaries, no decorative people or unrelated AWS services, no ambiguous arrows.

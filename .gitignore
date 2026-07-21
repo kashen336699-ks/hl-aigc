@@ -55,3 +55,7 @@ temp
 
 # SAM
 .aws-sam
+hl-aigc-lambda.zip
+
+# Generated architecture drafts
+docs/hl-aigc-architecture-preview.png
