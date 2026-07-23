@@ -1,8 +1,11 @@
 name: Preview Reconcile
 
 on:
-  schedule:
-    - cron: "0 18 * * *"
+  # Daily cron disabled: OIDC trust chain (provider + hl-aigc-preview-deploy role)
+  # was torn down after the homework teardown, so the scheduled run just fails
+  # at auth every day. Re-enable once the OIDC roles exist again.
+  # schedule:
+  #   - cron: "0 18 * * *"
   workflow_dispatch:
 
 permissions:
